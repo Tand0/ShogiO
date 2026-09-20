@@ -1,0 +1,37 @@
+
+
+@startuml CSA
+
+hide footbox
+
+actor -> PnDn
+activate PnDn
+
+loop 詰みか不詰みが確定するまで
+
+PnDn -> PnDn : Orノードとする
+
+PnDn -> PnDn : 次の一手を指す局面を探索する
+
+par 局面探索
+    activate PnDn
+    PnDn -> PnDn : 自局面が詰みか不詰みが確定していたら終了
+    alt その局面の合法手を展開していない
+        PnDn -> PnDn : 合法手を生成する
+        note right : 合法手はすべて pn,dn=1.1 にする
+    else その局面の合法手を展開していない
+        PnDn -> PnDn : 合法手でPnが最も少ない値を、再帰で局面探索する
+        note right : ノードはand, or を反転させる
+        activate PnDn
+        deactivate PnDn
+        PnDn -> PnDn : PnDnを計算する
+    end
+end
+
+deactivate PnDn
+
+end loop
+
+deactivate PnDn
+
+@enduml

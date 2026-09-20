@@ -1,0 +1,90 @@
+# ## Android Studio & Gradle の自動生成ファイル
+*.iml
+*.class
+.gradle
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# ## アプリモジュール（appフォルダ）内の自動生成ファイル
+/build
+/tool/build
+/app/build
+/app/captures
+/app/src/main/assets/mytable_small.zip
+/tool/bin
+/app/bin
+
+# ## 署名用キーストア（JKS）ファイル（※絶対公開NG）
+*.jks
+*.keystore
+
+# ## 外部サービスの秘密設定ファイル（例: Firebase / Google Maps）
+google-services.json
+
+#
+# ----------------------------------------------------------------------
+# Python のキャッシュ・コンパイル済みファイル（不要ファイル）
+# ----------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C拡張モジュール
+*.so
+
+# ----------------------------------------------------------------------
+# 仮想環境（絶対公開NG・ローカル依存）
+# ----------------------------------------------------------------------
+# 標準的な仮想環境フォルダ
+.venv/
+.venv*
+venv/
+ENV/
+env/
+.env/
+.env
+.env.local
+.env.*.local
+
+# Pipenv, Poetry, Anaconda 関連
+.python-version
+pip-log.txt
+pip-delete-this-directory.txt
+
+# ----------------------------------------------------------------------
+# 秘密情報・環境変数（絶対公開NG）
+# ----------------------------------------------------------------------
+.secret
+secrets.json
+
+# ----------------------------------------------------------------------
+# 開発ツール・エディタ設定
+# ----------------------------------------------------------------------
+# VS Code
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# PyCharm / IntelliJ
+.idea/
+
+# Mac / Windows のOS生成ファイル
+.DS_Store
+Thumbs.db
+
+# 
+tuning_results
+
+#

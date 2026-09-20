@@ -1,0 +1,344 @@
+
+@startuml
+package Android {
+  package "画面表示" as UI {
+  }
+  package 状態管理 as StatusManager {
+  }
+  package Engine部 as Engine {
+    usecase "各種Engine群" as E5
+  }
+  usecase "定跡(sqlite)" as UC1
+  usecase "評価値 Model (tensoflow lite)" as UC2
+  package "合法手制定等" as Util {
+  
+  }
+}
+package 外部ネットワーク {
+  usecase "CSAサーバ" as CSA1
+}
+package Tool群 as tool {
+}
+usecase "他の将棋ソフト群" as A1
+
+
+CSA1 <--> A1
+
+
+CSA1 <-> StatusManager
+StatusManager <--> Engine
+StatusManager <--> UI
+
+
+E5 --> UC1
+E5 --> UC2
+
+tool-->UC1
+tool-->UC2
+
+@enduml
+
+
+@startuml
+interface SendListener {
+  + void send(Object x) 
+}
+
+abstract class Engine {
+  + EngineResponse getNow()
+  + void setNow(EngineResponse now)
+  + String getEngineId();
+  + boolean isEnd()
+  + void createNow(EngineRequest r)
+}
+SendListener <|-- Engine
+Engine <|-- EtcEngine
+
+
+abstract class "各種Engine" as EtcEngine {
+  + void createNow(EngineRequest r)
+}
+@enduml
+
+
+@startuml
+left to right direction
+actor "初期曲面" as fc
+rectangle 次局面 {
+  usecase "２六歩" as UC1
+  usecase "７六歩" as UC2
+  usecase "１八香" as UC3
+}
+fc --> UC1
+fc --> UC2
+fc --> UC3
+@enduml
+
+
+@startuml
+
+hide footbox
+
+actor me as Me
+
+participant Engine as Engine
+
+Me -> Engine : Start
+
+activate Engine
+
+Engine -> Engine : 変更フラグを立てる
+
+loop 変更フラグが立っている限り繰り返し
+
+Engine -> Engine : 変更フラグを落とす
+
+Engine -> Engine : 対象局面を探索する 
+activate Engine
+deactivate Engine
+
+end loop
+
+deactivate Engine
+
+@enduml
+
+
+@startuml
+left to right direction
+
+actor "俺" as user
+
+usecase "*.csa" as UC1
+usecase "*.db" as UC2
+
+package Tool {
+    usecase "sqlite用DB" as DB1
+    usecase "バイナリデータ" as BIN
+    usecase "dataset" as DB2
+    usecase "model.keras" as DB3
+}
+
+package Android {
+    usecase "model.tfile" as MT
+    usecase "sqlite用DB" as DB4
+}
+
+user --> UC1 : 収集
+user --> UC2 : 収集
+UC1 --> DB1
+UC2 --> DB1
+DB1 -> BIN
+BIN -> DB2
+DB2 -> DB3 : モデル学習
+DB3 -> MT : Android用に軽量化
+DB1 --> DB4 : 定跡用に加工
+
+
+@enduml
+
+
+@startuml
+left to right direction
+
+actor "俺" as user
+
+usecase "*.csa" as UC1
+usecase "*.db" as UC2
+package Tool {
+  usecase "sqlite用DB" as DB1
+  usecase "win+losが閾値以上DB" as DB2
+  usecase "悪手生成したDB" as DB4
+  usecase "探索したDB" as DB5
+  usecase "win+losが閾値以下DB" as DB3
+}
+package Dataset {
+  usecase "DB毎に10分割したdataset" as DS1
+  usecase "全datasetをconcatしたdataset" as DS2
+}
+
+package Model {
+  usecase "Model" as Ml
+  usecase "Android用のModel" as M2
+}
+
+
+user --> UC1 : 収集
+user --> UC2 : 収集
+UC1 --> DB1
+UC2 --> DB1
+DB1 --> DB2
+DB1 --> DB3
+DB1 --> DB4
+DB1 --> DB5
+DB2 --> DB4
+DB2 --> DB5
+
+DB3 --> DS1
+DB4 --> DS1
+DB5 --> DS1
+
+DS1 -> DS2
+
+DS2 --> Ml : 学習
+Ml -> M2
+
+@enduml
+
+
+
+
+
+@startuml
+
+hide footbox
+
+participant Engine as Engine
+activate Engine
+
+alt その局面の合法手を生成していない
+
+Engine -> Engine : 変更フラグを立てる
+
+Engine -> Engine : 合法手を生成し、全局面の評価値を計算する
+
+Engine -> Engine : 合法手を優秀な評価値を残し足切りする (読みの幅制限)
+
+else その局面の合法手を生成済である
+
+loop その局面の合法手で優秀な順で繰り返し
+
+Engine -> Engine : 対象局面を探索する (読み深さ制限あり)
+activate Engine
+deactivate Engine
+
+Engine -> Engine : 変更フラグが立ったら brake
+end loop
+end alt
+
+Engine -> Engine : 合法手で最も優秀な手の評価値を自分の評価値にする
+
+deactivate Engine
+@enduml
+
+
+import jprops
+
+with open('settings.properties', 'r', encoding='utf-8') as f:
+    props = {}
+    # ファイルオブジェクトを渡し、キーと値を辞書に格納
+    for key, value in jprops.iter_properties(f):
+        props[key] = value
+
+print(props['key_name'])
+
+
+
+@startuml
+hide footbox
+
+actor me as AA
+database "CSAFile群" as db
+participant Java as Java
+database "sqlite群" as db2
+
+AA -> db : download
+
+activate Java
+loop ファイルの数だけ繰り返し
+Java -> db
+Java <-- db
+Java -> Java : Tableのリストに変換
+Java -> Java : 勝敗を確定
+Java -> Java : TableKeyに変換
+Java -> db2 : 256bitの主キーとして勝敗を加算
+end loop
+deactivate Java
+@enduml
+
+@startuml
+hide footbox
+
+actor me as AA
+
+participant Python as Python
+database "sqlite群" as db2
+database "dataset群" as db3
+
+AA -> Python
+loop データベースの数だけ繰り返す
+activate Python
+loop 分割して収集
+Python -> db2 : 分割して収集
+db2 --> Python
+Python -> db3 : datasetとして保存
+
+end loop
+end loop
+Python --> AA
+deactivate Python
+
+
+AA -> Python
+activate Python
+
+loop datasetの数だけ繰り返す
+activate Python
+
+Python -> db3 : concatで合成
+db3 --> Python
+end loop
+
+Python -> db3 : 合成したdatasetを保存
+
+Python --> AA
+deactivate Python
+@enduml
+
+
+
+@startuml
+hide footbox
+
+database "dataset" as dataset
+database "model" as model
+
+box "Android" #LightBlue
+database "sqlite" as sqlite
+database "tensoflow lite" as light
+participant データベースエンジン as engine
+participant 評価値エンジン as engine2
+end box
+
+db3 -> sqlite : copy
+sqlite -> engine : よくさされる手を取得
+
+activate Python
+loop データ行の数だけ繰り返し
+Python  -> db2: select *
+db2  --> Python
+
+Python  --> Java : JPypeを使ってPythonからアクセス
+activate Java
+Java -> Java : 主キーをTableKeyに変換
+Java -> Java : TableKeyをTableに変換
+Java -> Java : TableをLayerに変換
+Java -> Java : Layerを3次元のデータに変換
+Java  --> Python
+deactivate Java
+Python -> dataset : 3次元データをinput, 勝率を教師信号にしてdatasetを保存
+end loop
+deactivate Python
+
+Python -> dataset  : datasetでモデルを学習
+activate Python
+dataset --> Python
+
+Python -> model: モデルを保存
+deactivate Python
+model -> light: copy
+
+light -> engine2: 評価値として活用
+
+@enduml
+

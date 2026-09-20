@@ -1,0 +1,37 @@
+[versions]
+agp = "9.4.1"
+annotations = "26.1.0"
+fragmentKtx = "1.9.0"
+junit = "4.13.2"
+junitVersion = "1.3.0"
+espressoCore = "3.7.0"
+appcompat = "1.8.0"
+lifecycleViewmodelKtx = "2.11.0"
+litert = "2.2.0"
+litertApi = "2.2.0"
+material = "1.14.0"
+activityKtx = "1.13.0"
+constraintlayout = "2.2.2"
+sqliteJdbc = "3.53.4.0"
+monitor = "1.8.0"
+
+[libraries]
+annotations = { module = "org.jetbrains:annotations", version.ref = "annotations" }
+fragment-ktx = { module = "androidx.fragment:fragment-ktx", version.ref = "fragmentKtx" }
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
+espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
+appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
+lifecycle-viewmodel-ktx = { module = "androidx.lifecycle:lifecycle-viewmodel-ktx", version.ref = "lifecycleViewmodelKtx" }
+litert-main = { group = "com.google.ai.edge.litert", name = "litert", version.ref = "litert" }
+litert-api = { module = "com.google.ai.edge.litert:litert-api", version.ref = "litertApi" }
+
+material = { group = "com.google.android.material", name = "material", version.ref = "material" }
+activity-ktx = { group = "androidx.activity", name = "activity-ktx", version.ref = "activityKtx" }
+constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
+sqlite-jdbc = { module = "org.xerial:sqlite-jdbc", version.ref = "sqliteJdbc" }
+monitor = { group = "androidx.test", name = "monitor", version.ref = "monitor" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+

@@ -1,0 +1,275 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:orientation="vertical"
+    android:layout_width="fill_parent"
+    android:layout_height="wrap_content"
+    >
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content">
+
+        <Button
+            android:id="@+id/setting_connect"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="25sp"
+            android:text="@string/setting_connect" />
+        <Button
+            android:id="@+id/setting_stop"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="25sp"
+            android:text="@string/setting_stop" />
+        <Space
+            android:layout_width="fill_parent"
+            android:layout_height="48dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="25sp"
+            android:text="@string/setting_ip" />
+        <EditText
+            android:id="@+id/setting_ip"
+            android:layout_width="fill_parent"
+            android:layout_height="match_parent"
+            android:autofillHints="@string/setting_ip_hint"
+            android:hint="@string/setting_ip_hint"
+            android:inputType="text"
+            app:title="@string/setting_ip"
+            android:layout_marginStart="25sp"
+            android:minHeight="48dp" />
+
+        <Button
+            android:id="@+id/ip_10_0_2_2"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/ip_10_0_2_2"
+            android:layout_marginStart="100sp"
+            android:minHeight="48dp" />
+        <Button
+            android:id="@+id/ip_wdoor_c_u_tokyo_ac_jp"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/ip_wdoor_c_u_tokyo_ac_jp"
+            android:layout_marginStart="100sp"
+            android:minHeight="48dp" />
+        <Button
+            android:id="@+id/ip_wgserver_computer_shogi_org"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/ip_wgserver_computer_shogi_org"
+            android:layout_marginStart="100sp"
+            android:minHeight="48dp" />
+        <Button
+            android:id="@+id/ip_gserver_denryu_sen_jp"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/ip_gserver_denryu_sen_jp"
+            android:layout_marginStart="100sp"
+            android:minHeight="48dp" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="25sp"
+            android:text="@string/setting_port" />
+        <EditText
+            android:id="@+id/setting_port"
+            android:layout_width="fill_parent"
+            android:layout_height="match_parent"
+            app:title="@string/setting_port"
+            android:hint="@string/setting_port_hint"
+            android:autofillHints="@string/setting_port_hint"
+            android:inputType="number"
+            android:layout_marginStart="25sp"
+            android:minHeight="48dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="25sp"
+            android:text="@string/setting_user" />
+        <EditText
+            android:id="@+id/setting_user"
+            android:layout_width="fill_parent"
+            android:layout_height="match_parent"
+            app:title="@string/setting_user"
+            android:hint="@string/setting_user_hint"
+            android:autofillHints="@string/setting_user_hint"
+            android:inputType="text"
+            android:layout_marginStart="25sp"
+            android:minHeight="48dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="25sp"
+            android:text="@string/setting_pass" />
+        <EditText
+            android:id="@+id/setting_pass"
+            android:layout_width="fill_parent"
+            android:layout_height="match_parent"
+            app:title="@string/setting_pass"
+            android:hint="@string/setting_pass_hint"
+            android:autofillHints="@string/setting_pass_hint"
+            android:inputType="text"
+            android:layout_marginStart="25sp"
+            android:minHeight="48dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="25sp"
+            android:text="@string/setting_manual_hint" />
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/setting_manual"
+            android:layout_width="fill_parent"
+            android:layout_height="match_parent"
+            app:title="@string/setting_manual"
+            android:hint="@string/setting_manual_hint"
+            android:autofillHints="@string/setting_manual_hint"
+            android:layout_marginStart="100sp"
+            android:minHeight="48dp"
+            android:checked="false"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="25sp"
+            android:text="@string/setting_used_csa_extension_hint" />
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/setting_used_csa_extension"
+            android:layout_width="fill_parent"
+            android:layout_height="match_parent"
+            app:title="@string/setting_used_csa_extension"
+            android:hint="@string/setting_used_csa_extension_hint"
+            android:autofillHints="@string/setting_used_csa_extension_hint"
+            android:layout_marginStart="100sp"
+            android:minHeight="48dp"
+            android:checked="true"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="25sp"
+            android:text="@string/setting_gamename" />
+        <EditText
+            android:id="@+id/setting_gamename"
+            android:layout_width="fill_parent"
+            android:layout_height="match_parent"
+            app:title="@string/setting_gamename"
+            android:hint="@string/setting_gamename_hint"
+            android:autofillHints="@string/setting_gamename_hint"
+            android:inputType="text"
+            android:layout_marginStart="25sp"
+            android:minHeight="48dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="25sp"
+            android:text="@string/setting_spinner" />
+        <Spinner
+            android:id="@+id/setting_spinner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:summary="@string/setting_spinner"
+            android:dialogTitle="@string/setting_spinner"
+            android:defaultValue="*"
+            android:entries="@array/sen_go_list"
+            android:entryValues="@array/sen_go_list"
+            android:minHeight="48dp"
+            android:layout_marginStart="25sp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="25sp"
+            android:text="@string/setting_looping_hint" />
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/setting_looping"
+            android:layout_width="fill_parent"
+            android:layout_height="match_parent"
+            app:title="@string/setting_looping"
+            android:hint="@string/setting_looping_hint"
+            android:autofillHints="@string/setting_looping_hint"
+            android:layout_marginStart="100sp"
+            android:minHeight="48dp"
+            android:checked="false"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="25sp"
+            android:text="@string/setting_explorer" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="48dp"
+            android:text="@string/explorer_max_table_factory" />
+        <com.google.android.material.slider.Slider
+            android:id="@+id/explorer_max_table_factory"
+            android:minHeight="48dp"
+            android:layout_width="fill_parent"
+            android:layout_height="match_parent"
+            android:valueFrom="1000.0"
+            android:valueTo="100000.0"
+            android:value="100000.0"
+            android:stepSize="1000.0" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="48dp"
+            android:text="@string/explorer_max_no_change" />
+        <com.google.android.material.slider.Slider
+            android:id="@+id/explorer_max_no_change"
+            android:minHeight="48dp"
+            android:layout_width="fill_parent"
+            android:layout_height="match_parent"
+            android:valueFrom="10.0"
+            android:valueTo="100.0"
+            android:value="10.0"
+            android:stepSize="1.0" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="48dp"
+            android:text="@string/explorer_max_level" />
+        <com.google.android.material.slider.Slider
+            android:id="@+id/explorer_max_level"
+            android:minHeight="48dp"
+            android:layout_width="fill_parent"
+            android:layout_height="match_parent"
+            android:valueFrom="1.0"
+            android:valueTo="10.0"
+            android:value="3.0"
+            android:stepSize="1.0" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="48dp"
+            android:text="@string/explorer_min_son" />
+        <com.google.android.material.slider.Slider
+            android:id="@+id/explorer_min_son"
+            android:minHeight="48dp"
+            android:layout_width="fill_parent"
+            android:layout_height="match_parent"
+            android:valueFrom="0.0"
+            android:valueTo="10.0"
+            android:value="3.0"
+            android:stepSize="1.0" />
+
+        <Button
+            android:id="@+id/setting_save"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/setting_save"
+            android:layout_marginStart="100sp"
+            android:minHeight="48dp" />
+    </LinearLayout>
+</ScrollView>

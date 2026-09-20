@@ -1,0 +1,41 @@
+
+
+@startuml CSA
+
+hide footbox
+
+activate StateManager
+
+
+loop 各種エンジンに結果を依頼
+    StateManager -> A
+    StateManager -> B
+    StateManager -> C
+    StateManager -> D
+    StateManager -> E
+end
+
+
+par ランダムに応答が来る
+StateManager <- C
+StateManager <- E
+end
+
+StateManager -> StateManager : タイムアウトするまで待つ
+note right : ただし、エンジンがhit時即終了の場合はタイムアウト化する
+activate StateManager
+
+
+par 応答が来ていないものを確認する
+StateManager -> A
+StateManager -> B
+StateManager -> D
+end
+
+StateManager -> StateManager
+note right : 最も優先順位の高いエンジンの結果を返す
+
+deactivate StateManager
+deactivate StateManager
+
+@enduml

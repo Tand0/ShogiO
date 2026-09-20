@@ -1,0 +1,73 @@
+
+
+@startuml CSA
+
+
+@startuml CSA
+
+hide footbox
+
+activate Cleint
+Cleint -> Server : TCPによる接続
+activate Server
+Cleint <-- Server
+
+activate Cleint
+
+
+alt CSAサーバプロトコルの場合
+    Cleint -> Server : LOGIN <username> <password>
+else CSA拡張プロトコルの場合
+    Cleint -> Server : LOGIN <username> <password> x1
+end
+note right : サーバにログインする
+
+Cleint <- Server : LOGIN OK
+
+
+alt CSA拡張プロトコルの場合
+    Cleint -> Server : %%GAME <gamename> <senGo>
+end
+note right : 対戦情報を送る
+
+
+Cleint <- Server : BEGIN Game_Summary
+... いろんなメッセージ ...
+
+Cleint <- Server : BEND Game_Summary
+
+
+Cleint -> Server : AGREE
+note right : 開始情報の受け入れ通知
+
+
+Cleint -> Server : START
+note right : 将棋が開始される
+
+
+Cleint -> Server : 交互に手を指す
+Cleint <- Server
+... 対戦 ...
+Cleint -> Server
+Cleint <- Server
+
+Cleint -> Server : %TORYOなどの特殊処理
+note right : 負けた時には投了する
+
+Cleint <- Server : %WINなどの終了処理
+note right :  結果を返される
+
+Cleint -> Server : LOGOUT
+note right :  ログアウトする
+Cleint <- Server : LOGOUT:completed
+note right :  ログアウト完了
+
+deactivate Server
+deactivate Cleint
+deactivate Cleint
+
+@enduml
+
+
+
+@enduml

@@ -1,0 +1,115 @@
+- hosts: localhost
+  vars:
+    # プロジェクトのソースパスとドキュメント出力先を指定
+    project_base_dir: "../../../../../../gitwork/assets/doc"
+    project_output_dir: "../../../../../../gitwork/assets/doc/doc"
+    project_source_dir: "../../../../../../gitwork/assets/doc/src"
+    project_name: "ドキュメントの表示"
+
+  tasks:
+    - name: doxygenの存在をチェック
+      shell: command -v doxygen
+      register: doxygen_exists
+      failed_when: false
+      changed_when: false
+    - name: graphvizの存在をチェック
+      shell: command -v dot
+      register: dot_exists
+      failed_when: false
+      changed_when: false
+    - name: Javaの状態を表示
+      debug:
+        msg: dot_exists
+
+    - name: 存在してなかったらインストール
+      apt:
+        name:
+          - doxygen
+          - graphviz
+        state: present
+      become:
+        - "{{doxygen_exists.rc != 0 | bool}}"
+        - "{{dot_exists.rc != 0 | bool}}"
+      when:
+        - "{{doxygen_exists.rc != 0 | bool}}"
+        - "{{dot_exists.rc != 0 | bool}}"
+
+    - name: ドキュメント入力ディレクトリを作成
+      ansible.builtin.file:
+        path: "{{ project_source_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: android stduio 用のフォルダからdoxygen用にコピーする
+      ansible.builtin.copy:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+      loop:
+        - src: ../../../../app/src/main/java/
+          dest: "{{ project_source_dir }}"
+        - src: ../../../../app/src/test/java/
+          dest: "{{ project_source_dir }}"
+        - src: ../java/com/github/tand0/andshogio/tool
+          dest: "{{ project_source_dir }}/com/github/tand0/andshogio"
+
+    - name: ドキュメントディレクトリを作成
+      ansible.builtin.file:
+        path: "{{ project_base_dir }}"
+        state: directory
+        mode: '0755'
+  
+    - name: ドキュメント出力ディレクトリを作成
+      ansible.builtin.file:
+        path: "{{ project_output_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Doxyfileの生成 設定済みのものがない場合
+      ansible.builtin.command:
+        cmd: doxygen -g
+        chdir: "."
+        creates: "Doxyfile"
+
+    - name: クラス図を有効にするためのDoxyfile設定変更
+      ansible.builtin.lineinfile:
+        path: "Doxyfile"
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+      loop:
+        - { regexp: '^INPUT\s*=', line: 'INPUT = "{{ project_source_dir }}"' }
+        - { regexp: '^PROJECT_NAME\s*=', line: 'PROJECT_NAME = "{{ project_name }}"' }
+        - { regexp: '^OUTPUT_DIRECTORY\s*=', line: 'OUTPUT_DIRECTORY = {{ project_output_dir }}' }
+        - { regexp: '^GENERATE_RTF\s*=', line: 'GENERATE_RTF = YES' }
+        - { regexp: '^GENERATE_LATEX\s*=', line: 'GENERATE_RTF = NO' }
+        - { regexp: '^HAVE_DOT\s*=', line: 'HAVE_DOT = YES' }
+        - { regexp: '^DOT_IMAGE_FORMAT\s*=', line: 'DOT_IMAGE_FORMAT = png' }
+        - { regexp: '^EXTRACT_ALL\s*=', line: 'EXTRACT_ALL = YES' }
+        - { regexp: '^CLASS_GRAPH\s*=', line: 'CLASS_GRAPH = YES' }
+        - { regexp: '^COLLABORATION_GRAPH\s*=', line: 'COLLABORATION_GRAPH = YES' }
+        - { regexp: '^RECURSIVE\s*=', line: 'RECURSIVE = YES' }
+        - { regexp: '^CALLER_GRAPH\s*=', line: 'CALLER_GRAPH = YES' }
+        - { regexp: '^CLASS_DIAGRAMS\s*=', line: 'CLASS_DIAGRAMS = YES' }
+        - { regexp: '^EXTRACT_PRIVATE\s*=', line: 'EXTRACT_PRIVATE = YES' }
+        - { regexp: '^OUTPUT_LANGUAGE\s*=', line: 'OUTPUT_LANGUAGE = Japanese' }
+        - { regexp: '^INPUT_ENCODING\s*=', line: 'INPUT_ENCODING = UTF-8' }
+        - { regexp: '^DOXYFILE_ENCODING\s*=', line: 'DOXYFILE_ENCODING = UTF-8' }
+        - { regexp: '^SHOW_USED_FILES\s*=', line: 'SHOW_USED_FILES = NO' }
+        - { regexp: '^SHOW_FILES\s*=', line: 'SHOW_FILES = NO' }
+        - { regexp: '^REFERENCES_LINK_SOURCE\s*=', line: 'REFERENCES_LINK_SOURCE = NO' }
+        - { regexp: '^SOURCE_BROWSER\s*=', line: 'SOURCE_BROWSER = NO' }
+        - { regexp: '^FULL_PATH_NAMES\s*=', line: 'FULL_PATH_NAMES = NO' }
+        - { regexp: '^GENERATE_TREEVIEW\s*=', line: 'GENERATE_TREEVIEW = NO' }
+        - { regexp: '^DISABLE_INDEX\s*=', line: 'DISABLE_INDEX = YES' }
+        - { regexp: '^SEARCHENGINE\s*=', line: 'SEARCHENGINE = NO' }
+        - { regexp: '^RTF_HYPERLINKS\s*=', line: 'RTF_HYPERLINKS = YES' }
+        - { regexp: '^RTF_EXTENSIONS_FILE\s*=', line: 'RTF_EXTENSIONS_FILE = my_rtf_style.jsf' }
+
+
+
+    - name: Doxygenを実行してドキュメントを生成
+      ansible.builtin.command:
+        cmd: doxygen Doxyfile
+        chdir: "."
+      register: doxygen_result
+
+
