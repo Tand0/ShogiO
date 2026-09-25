@@ -49,8 +49,8 @@
           dest: "{{ project_source_dir }}"
         - src: ../../../../app/src/test/java/
           dest: "{{ project_source_dir }}"
-        - src: ../java/com/github/tand0/andshogio/tool
-          dest: "{{ project_source_dir }}/com/github/tand0/andshogio"
+        - src: ../java/com/github/tand0/shogio/tool
+          dest: "{{ project_source_dir }}/com/github/tand0/shogio"
 
     - name: ドキュメントディレクトリを作成
       ansible.builtin.file:

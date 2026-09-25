@@ -23,6 +23,8 @@ local.properties
 /app/src/main/assets/mytable_small.zip
 /tool/bin
 /app/bin
+/tool/release/
+/app/release/
 
 # ## 署名用キーストア（JKS）ファイル（※絶対公開NG）
 *.jks

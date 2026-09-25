@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.github.tand0.andshogio"
+    namespace = "com.github.tand0.shogio"
     compileSdk {
         version = release(37) {
             minorApiLevel = 1
@@ -14,11 +14,11 @@ android {
     //experimentalProperties["android.experimental.allowNamespaceCollisions"] = true
 
     defaultConfig {
-        applicationId = "com.github.tand0.andshogio"
+        applicationId = "com.github.tand0.shogio"
         minSdk = 35
         targetSdk = 37
-        versionCode = 2
-        versionName = "1.0.2"
+        versionCode = 3
+        versionName = "1.0.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

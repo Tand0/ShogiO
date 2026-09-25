@@ -11,8 +11,8 @@ sourceSets {
         java {
             srcDirs("src/main/java", "../app/src/main/java")
             //
-            include("com/github/tand0/andshogio/tool/**")
-            include("com/github/tand0/andshogio/util/**")
+            include("com/github/tand0/shogio/tool/**")
+            include("com/github/tand0/shogio/util/**")
         }
     }
 }
