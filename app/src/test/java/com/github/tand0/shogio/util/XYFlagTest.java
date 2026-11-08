@@ -14,7 +14,7 @@ public class XYFlagTest {
         Assert.assertEquals(3, xy.x());
         Assert.assertEquals(-2, xy.y(0));   // 手番0ならそのまま
         Assert.assertEquals(2, xy.y(1));    // 手番1なら反転
-        Assert.assertTrue(xy.flag());
+        Assert.assertTrue(xy.isLongRange());
     }
 
     /** x(): x がそのまま返る */
@@ -39,7 +39,7 @@ public class XYFlagTest {
         XYFlag xy1 = new XYFlag(1, 1, true);
         XYFlag xy2 = new XYFlag(1, 1, false);
 
-        Assert.assertTrue(xy1.flag());
-        Assert.assertFalse(xy2.flag());
+        Assert.assertTrue(xy1.isLongRange());
+        Assert.assertFalse(xy2.isLongRange());
     }
 }

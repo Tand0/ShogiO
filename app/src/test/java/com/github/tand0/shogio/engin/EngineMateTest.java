@@ -54,7 +54,8 @@ public class EngineMateTest {
         //
         List<TeTable> teTableList = new ArrayList<>();
         teTableList.add(new TeTable(table, 0));
-        EngineRequest req = new EngineRequest(null, -1, teTableList, false);
+        EngineRequest req = new EngineRequest(
+                null, -1, teTableList, false, 0);
         mate.fail(req);
         mate.createNow(req);
         // 不詰めが取れる
@@ -63,10 +64,10 @@ public class EngineMateTest {
         Assert.assertEquals(TableDefine.LOS, res.te());
         //
         String teString = "+4736FU"; // 一手進める
-        int te = TableDefine.changeTeStringToInt(teString);
+        int te = Table.changeTeStringToInt(teString);
         teTableList.clear();
         teTableList.add(new TeTable(table,te));
-        req = new EngineRequest(null, -1, teTableList, false);
+        req = new EngineRequest(null, -1, teTableList, false, 0);
         mate.createNow(req);
         // 不詰めが取れる
         res = mate.getNow();
@@ -80,6 +81,7 @@ public class EngineMateTest {
      */
     @Test
     public void mateShogiTest() throws IOException {
+        mateEngine("test_07_tume.csa", false, true);
         //
         mateEngine("27点法先手勝ち.csa", false, false); // 先手負け宣言
         mateEngine("27点法後手勝ち.csa", true, true);
@@ -95,7 +97,8 @@ public class EngineMateTest {
         mateEngine("test_04_tume.csa", false, true);
         mateEngine("test_05_tume.csa", false, true);
         mateEngine("test_06_tume.csa", false, true);
-        mateEngine("test_07_tume.csa", false, true);
+        mateEngine("test_08_tume_両王手.csa", false, false);
+        mateEngine("test_09_tume_移動NG.csa", false, false);
         //
     }
 
@@ -106,12 +109,14 @@ public class EngineMateTest {
      * @param tumi true: 詰み、 false: 不詰み(自分が詰んでいるなど)
 	 * @throws IOException 例外パターン
 	 */
-    protected void mateEngine(String fileNameString,boolean teWin, boolean tumi) throws IOException {
+    protected void mateEngine(
+            String fileNameString,boolean teWin, boolean tumi) throws IOException {
         //
         // ファイル名確定
         File file = new File(".").getAbsoluteFile();
         file = new File(file, "src/test/assets/mate_engine");
         file = new File(file, fileNameString);
+        System.out.println(file.getAbsoluteFile());
         List<EvalTeTable> eval = new ArrayList<>();
         //
         // データ構築
@@ -125,7 +130,8 @@ public class EngineMateTest {
         // 学習
         List<TeTable> teTableList = new ArrayList<>();
         teTableList.add(new TeTable(table, 0));
-        EngineRequest req = new EngineRequest(null, -1, teTableList, true);
+        EngineRequest req = new EngineRequest(
+                null, -1, teTableList, true, 0);
         mate.fail(req); // まず失敗状態にする
         mate.createNow(req); // 詰めがあるかチェックする
         //
@@ -151,7 +157,7 @@ public class EngineMateTest {
                 // 一個も取れないのは正常なので条件で弾く
                 // 一個でも取れた場合は負け宣言か確認する
                 int te = mate.getNow().te();
-                System.out.println("te=" + TableDefine.changeTeIntToKangiString(te));
+                System.out.println("te=" + Table.changeTeIntToKangiString(te));
                 Assert.assertEquals(TableDefine.LOS, te);
             }
         }

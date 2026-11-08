@@ -6,7 +6,7 @@ import java.util.Locale;
 /** 勝ち負け 手テーブル */
 public class EvalTeTable extends TeTable implements Comparable<TeTable> {
     /** 勝率 */
-    public final float eval;
+    public float eval;
 
     /** 勝ち数 */
     public final long win;
@@ -66,8 +66,6 @@ public class EvalTeTable extends TeTable implements Comparable<TeTable> {
         }
         if (o instanceof EvalTeTable ett) {
             return ett.eval == this.eval;
-        } else if (o instanceof ExplorerTable et) {
-            return et.getEval() == this.eval;
         }
         return false;
     }
@@ -79,24 +77,18 @@ public class EvalTeTable extends TeTable implements Comparable<TeTable> {
         float diff;
         if (o instanceof EvalTeTable ett) {
             diff = ett.eval - this.eval;
-        } else if (o instanceof ExplorerTable et) {
-            diff = et.getEval() - this.eval;
         } else {
             diff = 0.5f;
         }
         //
-        if (diff != 0f) {
-            // 手番に応じて符号を反転
-            return (this.table.getTeban() == 0)
-                    ? (diff > 0 ? -1 : 1)
-                    : (diff > 0 ? 1 : -1);
+        if (diff == 0f) {
+            return this.table.compareTo(o.table);
         }
-        //
-        // eval が完全一致した場合のタイブレーク
-        return -1;
+        // 手番に応じて符号を反転
+        return (this.table.getSide() == 0)
+                ? (diff > 0 ? -1 : 1)
+                : (diff > 0 ? 1 : -1);
     }
-
-
     /** 局面を左右反転させる
      *
      * @return 反転したテーブル

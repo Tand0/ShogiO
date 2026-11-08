@@ -1,0 +1,5 @@
+<resources>
+    <style name="BoxCheckBox" parent="android:Widget.CompoundButton.CheckBox">
+        <item name="android:button">@drawable/box_checkbox</item>
+    </style>
+</resources>

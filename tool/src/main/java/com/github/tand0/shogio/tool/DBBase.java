@@ -53,28 +53,28 @@ public abstract class DBBase extends MyTimer {
         //
         // SQLを開いていく
         for (String targetDBString : getTargetDb()) {
-        String targetDB = MyPropertiesAccess.getString(targetDBString);
-        System.out.println("run start! db=" + targetDB);
-        //
-        try (Connection connTarget = DriverManager.getConnection(fToU(targetDB));
-             Statement stmtTarget = connTarget.createStatement(
-                     ResultSet.TYPE_FORWARD_ONLY,
-                     ResultSet.CONCUR_READ_ONLY)) {
-            // WAL モードにする // ディスクへの書き込みを高速化
-            stmtTarget.execute("PRAGMA journal_mode = WAL;");
-            // OSのディスク書き込み完了を待たずに、次の処理へ進む
-            stmtTarget.execute("PRAGMA synchronous = OFF;");
-            // 一時的な作業データを、ディスクではなくメモリ（RAM）上で処理する
-            stmtTarget.execute("PRAGMA temp_store = MEMORY;");
+            String targetDB = MyPropertiesAccess.getString(targetDBString);
+            System.out.println("run start! db=" + targetDB);
             //
-            // 最大値の取得
-            long countMax = getCountMax(stmtTarget);
-            //
-            runSearch(stmtTarget, countMax);
-        } catch (SQLException e) {
-            System.out.println("f=" + targetDB);
-            System.out.println("e=" + e.getMessage());
-        }
+            try (Connection connTarget = DriverManager.getConnection(fToU(targetDB));
+                 Statement stmtTarget = connTarget.createStatement(
+                         ResultSet.TYPE_FORWARD_ONLY,
+                         ResultSet.CONCUR_READ_ONLY)) {
+                // WAL モードにする // ディスクへの書き込みを高速化
+                stmtTarget.execute("PRAGMA journal_mode = WAL;");
+                // OSのディスク書き込み完了を待たずに、次の処理へ進む
+                stmtTarget.execute("PRAGMA synchronous = OFF;");
+                // 一時的な作業データを、ディスクではなくメモリ（RAM）上で処理する
+                stmtTarget.execute("PRAGMA temp_store = MEMORY;");
+                //
+                // 最大値の取得
+                long countMax = getCountMax(stmtTarget);
+                //
+                runSearch(stmtTarget, countMax);
+            } catch (SQLException e) {
+                System.out.println("f=" + targetDB);
+                System.out.println("e=" + e.getMessage());
+            }
         }
         //
     }

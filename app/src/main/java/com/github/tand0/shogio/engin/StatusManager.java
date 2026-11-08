@@ -1,10 +1,6 @@
 package com.github.tand0.shogio.engin;
 
-import android.util.ArraySet;
-
-import androidx.annotation.Nullable;
-
-import com.github.tand0.shogio.util.EvalTeTable;
+import com.github.tand0.shogio.util.AllBitboard;import com.github.tand0.shogio.util.EvalTeTable;
 import com.github.tand0.shogio.util.TensoInterface;
 import com.github.tand0.shogio.util.MainDatabase;
 import com.github.tand0.shogio.util.Table;
@@ -18,6 +14,8 @@ import java.io.InputStreamReader;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -28,6 +26,13 @@ import java.util.concurrent.TimeUnit;
 /** 将棋サーバと接続するための状態管理用クラス
  */
 public class StatusManager implements SendListener, Runnable {
+
+    /** 最大長考時間(sec) */
+    final long SLEEP_MAX_TIME = 10;
+
+    /** 最小長考時間(sec) */
+    final long SLEEP_MIN_TIME = 2;
+
     /** データベース */
     private MainDatabase database;
 
@@ -50,7 +55,7 @@ public class StatusManager implements SendListener, Runnable {
     private final List<TeTable> sumTeTableList = new LinkedList<>();
 
     /** 最高にダメな手のリスト */
-    private final Set<TeTable> topObBadTeTableSet = new ArraySet<>();
+    private final Set<TeTable> topObBadTeTableSet = new HashSet<>();
 
     /** エンジンの情報 */
     private final List<EngineStatus> engineStatusList = new LinkedList<>();
@@ -62,7 +67,10 @@ public class StatusManager implements SendListener, Runnable {
     private EngineRecordEval engineRecordEval;
 
     /** 探索用のエンジン */
-    private EngineExplorer explorer;
+    private EngineExplorerMinMax explorer;
+
+    /** ランダムのエンジン */
+    private EngineRandom random;
 
     /** エンジンのターン */
     private int engineTurn = -1;
@@ -92,14 +100,14 @@ public class StatusManager implements SendListener, Runnable {
     private MessageConnectRequest connectData;
 
     /** エンジンをまとめて合議するための時間。
-     * 単位は msec
+     * 単位は milliseconds
      */
     private final static long AFTER_TRANSACTION_TIME = 100L;
 
     /** 探索用のエンジンの取得
      * @return 探索用のエンジン
      */
-    public EngineExplorer explorer() {
+    public EngineExplorerMinMax explorer() {
         return this.explorer;
     }
 
@@ -110,11 +118,10 @@ public class StatusManager implements SendListener, Runnable {
      */
     public long getSleepTime() throws InterruptedException {
         long time;
-        long max = 10;
         // Total_Time 記述と Increment 加算時間の両方の記述が省略された場合、
-        // 対局全体を通じた時間制限は存在しない。→最大 max 秒にする。
+        // 対局全体を通じた時間制限は存在しない。→ SLEEP_MAX_TIME 秒にする。
         if ((totalTime == 0) && (incrementTime == 0)) {
-            time = max;
+            time = SLEEP_MAX_TIME;
         } else {
             time = totalTime // 経過時間
                     + ((sumTeTableList.size() - 1) * incrementTime) // 加算時間
@@ -124,10 +131,10 @@ public class StatusManager implements SendListener, Runnable {
         }
         forGUI.send("st=" + time + " s=" + this.sumTime
                 + " tt=" + totalTime + " it=" + incrementTime);
-        // Total_Timeから経過時間が max 秒より大きい場合、max 秒とする
-        time = Math.min(max, time);
-        // 時間が2秒を切った場合、２秒とする。
-        time = Math.max(time, 2);
+        // Total_Timeから経過時間は最大で SLEEP_MAX_TIME 秒とする
+        time = Math.min(SLEEP_MAX_TIME, time);
+        // 時間が2秒を切った場合、SLEEP_MIN_TIME 秒とする。
+        time = Math.max(time, SLEEP_MIN_TIME);
         //
         return time;
     }
@@ -179,33 +186,37 @@ public class StatusManager implements SendListener, Runnable {
         this.lInterface = lInterface;
     }
 
+    /**
+     * エンジンステータスリストにスレッドを立てながらエンジンを詰む
+     * @param engine エンジン
+     * @param decide true:呼びが完了したら終了、false:呼びの完了が終わってない
+     */
+    public void addEngineStatusList(Engine engine, boolean decide) {
+        this.engineStatusList.addLast(new EngineStatus(engine,decide));
+        new Thread(engine, engine.getEngineId()).start();
+    }
+
     /** 受信処理 */
     public void run() {
         //
         // エンジンをあらかじめ起動する(上にある方が先に処理される)
-        Engine engine = new EngineMate();
-        this.engineStatusList.addLast(new EngineStatus(engine,true));
-        new Thread(engine, engine.getEngineId()).start();
+        Engine engineMate = new EngineMate();
+        addEngineStatusList(engineMate, true);
         //
-        engine = new EngineManual();
-        this.engineStatusList.addLast(new EngineStatus(engine,true));
-        new Thread(engine, engine.getEngineId()).start();
+        Engine engineManual = new EngineManual();
+        addEngineStatusList(engineManual, true);
         //
         EngineDatabase engineDatabase = new EngineDatabase(database, topObBadTeTableSet);
-        this.engineStatusList.addLast(new EngineStatus(engineDatabase,true));
-        new Thread(engineDatabase, engineDatabase.getEngineId()).start();
+        addEngineStatusList(engineDatabase , true);
         //
-        this.explorer = new EngineExplorer(lInterface, topObBadTeTableSet);
-        this.engineStatusList.addLast(new EngineStatus(explorer,false));
-        new Thread(this.explorer, this.explorer.getEngineId()).start();
+        this.explorer = new EngineExplorerMinMax(lInterface, topObBadTeTableSet);
+        addEngineStatusList(this.explorer, false);
         //
-        engine = new EngineRandom();
-        this.engineStatusList.addLast(new EngineStatus(new EngineRandom(),false));
-        new Thread(engine, engine.getEngineId()).start();
+        this.random = new EngineRandom();
+        addEngineStatusList(this.random, false);
         //
         // 以降はetcListに追加されスレッド化されない
-        EngineEval engineEval = new EngineEval(lInterface, topObBadTeTableSet);
-        this.engineEtcList.addLast(engineEval);
+        this.engineEtcList.addLast(new EngineEval(lInterface, topObBadTeTableSet));
         this.engineRecordEval = new EngineRecordEval(lInterface);
         this.engineEtcList.addLast(engineRecordEval);
         this.engineEtcList.addLast(new EngineBadMove(database));
@@ -231,7 +242,10 @@ public class StatusManager implements SendListener, Runnable {
                             long pollWait = 2000;
                             command = this.queue.poll(pollWait, TimeUnit.MILLISECONDS);
                             if (command == null) {
-                                forGUI.send("t=" + (sleep / 1000) + " s=" + sumTime);
+                                forGUI.send("t=" + (sleep / 1000)
+                                        + " s=" + this.sumTime
+                                        + " tt=" + totalTime
+                                        + " it=" + incrementTime);
                             }
                         }
                     }
@@ -300,7 +314,15 @@ public class StatusManager implements SendListener, Runnable {
      */
     @Override
     public void send(Object x) throws InterruptedException {
-        this.queue.put(x);
+        if (x == null) {
+            try {
+                this.forGUI.send("send message is null!");
+            } catch(InterruptedException e) {
+                // EMPTY
+            }
+        } else {
+            this.queue.put(x);
+        }
     }
 
     /** GUIからのサーバ接続要求
@@ -310,7 +332,7 @@ public class StatusManager implements SendListener, Runnable {
         explorer.maxTableFactory(data.maxTableFactory());
         explorer.maxNoChange(data.maxNoChange());
         explorer.maxLevel(data.maxLevel());
-        explorer.minSon(data.minSon());
+        explorer.maxSon(data.minSon());
         if (this.socket != null) {
             try {
                 this.forGUI.send("already connected!");
@@ -508,9 +530,9 @@ public class StatusManager implements SendListener, Runnable {
      */
     public void invokeYourTurn(String teString) throws InterruptedException {
         TeTable lastTable = sumTeTableList.getLast();
-        int te = TableDefine.changeTeStringToInt(teString);
+        int te = Table.changeTeStringToInt(teString);
         Table newTable = new Table(lastTable.table, te);
-        this.sumTime += TableDefine.changeTeStringToTime(teString);
+        this.sumTime += Table.changeTeStringToTime(teString);
         sumTeTableList.add(new TeTable(newTable,te));
         forGUI.send(sumTeTableList);
         //
@@ -529,7 +551,7 @@ public class StatusManager implements SendListener, Runnable {
         //
         for (EngineStatus engineStatus: engineStatusList) {
             // エンジンフラグを落とす
-            engineStatus.setEngineResponse(null);
+            engineStatus.setEngineResponse(false);
         }
         // 待ち時間を決める (AFTER_TRANSACTION_TIME はエンジン以外の処理として見積もる)
         long sleepTime = this.getSleepTime();
@@ -537,7 +559,8 @@ public class StatusManager implements SendListener, Runnable {
         //
         // リクエスト要求を作る
         engineTurn = sumTeTableList.size();
-        EngineRequest re = new EngineRequest(this, engineTurn, sumTeTableList, false);
+        EngineRequest re = new EngineRequest(
+                this, engineTurn, sumTeTableList, false, targetTime);
         //
         // エンジンを叩き起こす
         for (EngineStatus engineStatus: engineStatusList) {
@@ -552,79 +575,93 @@ public class StatusManager implements SendListener, Runnable {
      * @throws InterruptedException Interrupted Exception
      * @throws IOException IO Exception
      */
-    public void invokeEngine(EngineResponse response, boolean timeout) throws InterruptedException, IOException {
+    public void invokeEngine(EngineResponse response, boolean timeout)
+            throws InterruptedException, IOException {
+        // フラグ立て
         if (response != null) {
             if (response.turn() == sumTeTableList.size()) {
-                // フラグ立て
                 for (EngineStatus status : engineStatusList) {
                     if (response.cls().equals(status.engine.getClass())) {
-                        status.setEngineResponse(response);
-                        if (status.decide && (response.te() != TableDefine.LOS)) {
-                            // 決定でかつ詰んでなければtimeoutと同じ効果がある
-                            timeout = true;
-                        }
+                        status.setEngineResponse(true);
                     }
                 }
             }
         }
         //
         // 他のエンジンの終了を待つか確認する
-        boolean flag = true; // 全て応答があるなら True
-        for (EngineStatus status : engineStatusList) {
-            if ((this.connectData != null)
-                    && (!this.connectData.manualMode())
-                    && (status.engine instanceof EngineManual)) {
+        if (! timeout) {  // タイムアウトフラグが既に立っているなら見る必要なし
+            timeout = true; // 全て応答があるなら True
+            for (EngineStatus status : engineStatusList) {
+                if ((this.connectData != null)
+                        && (!this.connectData.manualMode())
+                        && (status.engine instanceof EngineManual)) {
                     // マニュアルモードが false のときでかつマニュアルエンジンのとき
-                continue; // マニュアルエンジンは無視する
-            }
-            if (status.getEngineResponse() == null) {
-                flag = false; // 応答が無いものがある
-                break;
+                    continue; // マニュアルエンジンは無視する
+                }
+                if (! status.getEngineResponse()) {
+                    // ステータスフラグは落ちている
+                    timeout = false;  // 終わってない処理がある
+                    break;
+                }
+                // ステータスフラグが立っている
+                //
+                if ((status.engine.getNow() == null)
+                    || (status.engine.getNow().te() == TableDefine.LOS)) {
+                    // ステータスフラグは立ったが、手は見つからない
+                    // ※注：詰みエンジンがステータスは返すが不詰み(LOS)を返す時がある
+                    continue;
+                }
+                if (status.decide) {
+                    // 決定フラグが立っていて、相手が見つかっているならその時点で終了
+                    break;
+                }
+                // 決定フラグは立っていないときは continue
             }
         }
-        if (flag) {
-            // 全てのエンジンから回答が来たら timeoutと同じである
-            timeout = true;
-        }
-        if (!timeout) {
+        //
+        // 他のエンジンの終了を待つか必要があるので以降は行わない
+        if (! timeout) {
             return;
         }
         //
         // timeout発生
-        targetTime = 0; // 待ちを無限に替える
+        targetTime = 0; // 待ちを無限に変更する
         engineTurn = -1; // 同じ手数で応答後にやってきたエンジンを無視させる
         //
+        EngineResponse target = random.getNow();  // 最低保証
         for (EngineStatus status : engineStatusList) {
-            EngineResponse res = status.getEngineResponse();
-            if (res == null) {
-                // エンジンの現在の値を返す
-                res = status.engine.getNow();
-                status.engine.send(new EngineStop());
-                if (res == null) {
-                    // それでも resがなければ
-                    continue;
-                }
-            }
-            if (res.te() != TableDefine.LOS) {
-                // 詰んでなければ指し手を送信する
-                this.forGUI.send("engine=" + status.engine.getEngineId());
-                String teString = TableDefine.changeTeIntToString(res.te());
-                if (res.te() == TableDefine.WIN) {
-                    Table table = sumTeTableList.getLast().table;
-                    if (0 != table.isKingWin()) {
-                        // 24点法なので引き分け宣言する
-                        teString = TableDefine.STRING_DRAW;
-                    }
-                }
-                sendSocket(teString + "\r\n");
-                return;
+            EngineResponse res = status.engine.getNow();
+            if ((res != null) && (res.te() != TableDefine.LOS)) {
+                target = res;  // 最優先のエンジンの現在の値を返す
+                break;
             }
         }
-        //
-        // 詰んだ
-        sendSocket("%TORYO\r\n");
-        sendSocket("LOGOUT\r\n");
-        stopSocket();
+        for (EngineStatus status : engineStatusList) {
+            status.engine.send(new EngineStop());  // 全てのstatusに停止を送る
+        }
+        for (EngineStatus status : engineStatusList) {
+            status.setEngineResponse(false);  // フラグを落とす
+        }
+        if ((target == null) || (target.te() == TableDefine.LOS)) {
+            //
+            // 詰んだ
+            sendSocket("%TORYO\r\n");
+            sendSocket("LOGOUT\r\n");
+            stopSocket();
+            return;
+        }
+        // 詰んでなければ指し手を送信する
+        this.forGUI.send("engine=" + target.cls().getName());
+        String teString = Table.changeTeIntToString(target.te());
+        if (target.te() == TableDefine.WIN) {
+            Table table = sumTeTableList.getLast().table;
+            AllBitboard all = new AllBitboard(table);
+            if (0 != table.isKingWin(table.getSide(), all)) {
+                // 24点法なので引き分け宣言する
+                teString = TableDefine.STRING_DRAW;
+            }
+        }
+        sendSocket(teString + "\r\n");
         //
     }
 
@@ -659,12 +696,21 @@ public class StatusManager implements SendListener, Runnable {
             return;
         }
         List<TeTable> teTableList = List.of(teTable);
-        EngineRequest req = new EngineRequest(this, -1, teTableList, true);
+        EngineRequest req = new EngineRequest(
+                this, -1, teTableList, true,0);
         // 手動でcreateを呼ぶ
         engine.createNow(req);
         try {
             // 結果を手動で返す
-            req.forResult().send(engine.getNow());
+            SendListener sendListener = req.forResult();
+            if (sendListener != null) {
+                Object result = engine.getNow();
+                if (result == null) {
+                    forGUI().send("engine.getNow()==null, e=" + engine.getEngineId());
+                } else {
+                    req.forResult().send(result);
+                }
+            }
         } catch(InterruptedException e) {
             // EMPTY
         }
@@ -677,7 +723,16 @@ public class StatusManager implements SendListener, Runnable {
      * @throws IOException IO Exception
      */
     public void invokeDisplay(EngineResponse response) throws InterruptedException, IOException {
-        MessageDisplayResponse res = new MessageDisplayResponse(response.displayList());
+        if (response == null) {
+            forGUI.send("invokeDisplay() response==null");
+            return;
+        }
+        List<? extends TeTable> displayList = response.displayList();
+        if (displayList == null) {
+            forGUI.send("invokeDisplay() displayList==null");
+            return;
+        }
+        MessageDisplayResponse res = new MessageDisplayResponse(displayList);
         forGUI.send(res);
     }
 
@@ -692,18 +747,20 @@ public class StatusManager implements SendListener, Runnable {
         if (! lastTable.createChild().isEmpty()) {
             return; // 詰んでないなら処理しない
         }
-        int losTeban = lastTable.getTeban();
+        int losSide = lastTable.getSide();
         //
         // 評価値を取得する
-        EngineRequest req = new EngineRequest(null, -1, sumTeTableList, true);
+        EngineRequest req = new EngineRequest(
+                null, -1, sumTeTableList, true, 0);
         engineRecordEval.createNow(req);
         EngineResponse res = engineRecordEval.getNow();
-        List<TeTable> teTableList = res.displayList();
+        List<? extends TeTable> teTableList =
+                (res != null) ? res.displayList() : new ArrayList<>();
         //
         // ここから再悪手を探す
         // 先手の場合は、最も評価の落差が大きい手を探す
         // 後手の場合は、最も評価が大きくなった手を探す
-        TeTable oldTeTable = getTeTable(teTableList, losTeban);
+        TeTable oldTeTable = getTeTable(teTableList, losSide);
         if (oldTeTable != null) {
             // 待ったする手を決定する
             topObBadTeTableSet.add(oldTeTable);
@@ -718,11 +775,10 @@ public class StatusManager implements SendListener, Runnable {
     /** 再悪手を取得する
      *
      * @param teTableList 評価値付き棋譜リスト
-     * @param losTeban 負けた手番情報
+     * @param losSide 負けた手番情報
      * @return 最も悪手なテーブル
      */
-    @Nullable
-    private TeTable getTeTable(List<TeTable> teTableList, int losTeban) {
+    private TeTable getTeTable(List<? extends TeTable> teTableList, int losSide) {
         float oldSub = 0;
         float oldValue = 0.5f;
         TeTable oldTable = null;
@@ -732,7 +788,7 @@ public class StatusManager implements SendListener, Runnable {
                 continue;
             }
             //
-            if (losTeban == evalTeTable.table.getTeban()) {
+            if (losSide == evalTeTable.table.getSide()) {
                 continue; // 負けた局面だけチェックする
             }
             if (oldTable == null) {

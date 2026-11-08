@@ -13,15 +13,11 @@ import com.google.ai.edge.litert.TensorBuffer;
 import java.util.List;
 
 /**
- * TensoFlow Lite とのアクセスを管理するクラス
+ * Tenso Flow とのアクセスを管理するクラス
  */
 public class TFLiteManager implements AutoCloseable, TensoInterface {
-
-    /** モデルパス */
-    public static final String MODEL_PATH = "model.tflite";
-
     /** input gen */
-    public InputGen inputGen = new InputGen();
+    public final InputGen inputGen = new InputGen();
 
     /** model */
     public CompiledModel compiledModel = null;
@@ -78,7 +74,7 @@ public class TFLiteManager implements AutoCloseable, TensoInterface {
             // 1次元から１つのスカラーを得る
             float result = flatOutputData[0];
             //
-            if (table.getTeban() != 0) {
+            if (table.getSide() == 0) {
                 result = 1.0f - result; // 反転する
             }
             return result;

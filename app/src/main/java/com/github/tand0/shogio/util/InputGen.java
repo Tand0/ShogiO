@@ -4,6 +4,7 @@ package com.github.tand0.shogio.util;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
+import java.util.Locale;
 
 /** Input 変換を行う。
  * Tableを変換して３次元のデータにする
@@ -21,13 +22,13 @@ public class InputGen {
     public static final int NARI_CHANNEL = 0;
 
     /** 先後チャネルの位置 */
-    public static final int SENGO_CHANNEL = 9;
+    public static final int SENGO_CHANNEL = 10;
 
     /** 手コマチャネルの位置 */
-    public static final int TEGOMA_CHANNEL = 11;
+    public static final int TEGOMA_CHANNEL = 12;
 
     /** 利きコマチャネルの位置 */
-    public static final int DANGER_CHANNEL = 13;
+    public static final int DANGER_CHANNEL = 14;
 
     /** 全チャネル数 */
     public static final int MAX_CHANNEL = 16;
@@ -89,7 +90,7 @@ public class InputGen {
         Arrays.fill(result, 0f);
         //
         // 元のテーブルが後手番の場合、上下反転して先手番に替える
-        final Table fv =(0 == paramTable.getTeban()) ?
+        final Table fv =(0 == paramTable.getSide()) ?
                 paramTable : paramTable.flippingVertical();
         //
         // 左右反転しても評価値は同じだが、より小さい方を選ぶ
@@ -100,44 +101,47 @@ public class InputGen {
         for (int y = 0; y < TableDefine.B_MAX; y++) {
             for (int x = 0; x < TableDefine.B_MAX ; x++) {
                 //
-                // 最終面に all 1 を入れることで盤面境界が分かるようにする
-                set(x, y , MAX_CHANNEL - 1, 1f);
-                //
                 // 局面上のコマの取得
                 byte koma = table.getKoma(x, y);
                 //
                 // 空白の場合、無視する
-                if ((koma & 0xF) == TableDefine.pNull) {
+                if (Table.getKomaOnly(koma) == TableDefine.pNull) {
                     continue;
                 }
                 // 成りコマがある場合は0レイヤに1に1を入れる
-                if ((koma & TableDefine.NARI) != 0) {
+                if (Table.isNariKoma(koma)) {
                     set(x, y, NARI_CHANNEL, 1.0f);
                 }
-                // コマがおかれているところは1で埋める
-                for (int channel = 0 ; channel < TEGOMA_CHANNEL ; channel++) {
-                    set(x, y, channel, -1.0f);
-                }
+                // コマがおかれているところは-1で埋める
+                //for (int channel = 0 ; channel < TEGOMA_CHANNEL ; channel++) {
+                //    set(x, y, channel, -1.0f);
+                //}
                 // 先手か後手かを配置する 0:先手、1:後手
-                int teban = (koma & TableDefine.ENEMY) == 0 ? 0 : 1;
-                set(x, y, SENGO_CHANNEL + teban,  1.0f);
+                int side = Table.isSideKoma(koma);
+                set(x, y, SENGO_CHANNEL + side,  1.0f);
+                // 王だけ2チャンネル用意する
+                int addKing = (Table.getKomaOnly(koma) == TableDefine.pK) ? side : 0;
                 // コマを配置する
-                set(x, y, koma & 0xF, 1.0f);
+                set(x, y, Table.getKomaOnly(koma) + addKing, 1.0f);
                 //
                 // ここから利きの指定
                 MoveKoma moverKoma = MoveKoma.moverKomaMap.get(koma & 0x1F);
                 if (moverKoma != null) {
                     for (XYFlag xYFlag : moverKoma.getXYFlag()) {
                         final int dx = xYFlag.x();
-                        final int dy = xYFlag.y(teban);
+                        final int dy = xYFlag.y(side);
                         int xx = x + dx;
                         int yy = y + dy;
-                        for (; (0 <= xx) && (0 <= yy) && (xx < TableDefine.B_MAX) && (yy < TableDefine.B_MAX); xx += dx, yy += dy) {
+                        for (; (0 <= xx)
+                                && (0 <= yy)
+                                && (xx < TableDefine.B_MAX)
+                                && (yy < TableDefine.B_MAX);
+                             xx += dx, yy += dy) {
                             // 利きの場所に DANGER_LAYER_VALUE を加算する
-                            float k = get(xx, yy,DANGER_CHANNEL + teban);
-                            set(xx, yy,DANGER_CHANNEL + teban, k + 1.0f);
+                            float k = get(xx, yy,DANGER_CHANNEL + side);
+                            set(xx, yy,DANGER_CHANNEL + side, k + 0.1f);
                             //
-                            if ((!xYFlag.flag())
+                            if ((!xYFlag.isLongRange())
                                     || (TableDefine.pNull != table.getKoma(xx, yy))) {
                                 break;//8方向チェックか、移動先にコマがいたらそこまで
                             }
@@ -192,25 +196,25 @@ public class InputGen {
             for (int y = 0; y < TableDefine.B_MAX ; y++) {
                 //
                 // 成りレイヤ―にフラグがってたら 成りビットを立てる
-                byte nari = get(x, y, NARI_CHANNEL) == 1.0f ?
-                        TableDefine.NARI : 0;
+                int nari = get(x, y, NARI_CHANNEL) == 1.0f ? 1 : 0;
                 //
                 // 後手レイヤ―にフラグがってたら 後手ビットを立てる
-                byte sengo = get(x, y, SENGO_CHANNEL + 1) == 1.0f ?
-                        TableDefine.ENEMY : 0;
+                int side = get(x, y, SENGO_CHANNEL + 1) == 1.0f ? 1 : 0;
                 //
                 // 歩から王までのループ
                 table.setKoma(TableDefine.pNull,x,y); // 空入力
-                for (byte koma = TableDefine.pP ; koma <= TableDefine.pK ; koma++) {
+                for (byte koma = TableDefine.pP ; koma <= TableDefine.pK + 1 ; koma++) {
                     if (get(x, y, koma) != 1) {
                         continue; // 空入力
                     }
-                    table.setKoma((byte) (sengo | nari | koma), x, y);
+                    byte base = (koma == (TableDefine.pK + 1)) ? TableDefine.pK : koma;
+                    base = Table.addSideKoma(Table.addNariKoma(base , nari), side);
+                    table.setKoma(base, x, y);
                 }
             }
         }
         // 手番の設定 (必ず先手)
-        table.setTeban(0);
+        table.setSide(0);
     }
 
     /**
@@ -259,7 +263,10 @@ public class InputGen {
             buff.append("Channel=").append(channel).append("\n");
             for (int y = 0 ; y < TableDefine.B_MAX ; y++) {
                 for (int x = 0 ; x < TableDefine.B_MAX ; x++) {
-                    buff.append(String.format("%2d", (int)this.get(x, y, channel)));
+                    buff.append(String.format(
+                            Locale.JAPANESE,
+                            "%2.1f",
+                            this.get(x, y, channel)));
                 }
                 buff.append("\n");
             }

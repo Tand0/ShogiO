@@ -55,7 +55,7 @@ def print_batch_data(channel_max, batch, data_inp):
         for y in range(9):
             print("\t\t", end="")
             for x in range(9):
-                print(f" {int(batch_data[x, y, ch]):+1.0f}".replace("+", " "), end="")
+                print(f" {batch_data[x, y, ch]:+1.1f}".replace("+", " "), end="")
             print()
 
 if __name__ == "__main__":

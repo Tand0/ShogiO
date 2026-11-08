@@ -8,6 +8,6 @@ import java.util.List;
  * TeTable応答
  * @param teTableList 手テーブル
  */
-public record MessageDisplayResponse(List<TeTable> teTableList) {
+public record MessageDisplayResponse(List<? extends TeTable> teTableList) {
 
 }

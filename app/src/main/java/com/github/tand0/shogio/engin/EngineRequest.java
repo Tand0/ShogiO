@@ -11,9 +11,11 @@ import java.util.List;
  * @param turn        手数
  * @param teTableList 手順
  * @param display     表示モードの場合 true
+ * @param targetTime  ターゲット時間
  */
 public record EngineRequest(SendListener forResult,
                             int turn,
                             List<TeTable> teTableList,
-                            boolean display) {
+                            boolean display,
+                            long targetTime) {
 }

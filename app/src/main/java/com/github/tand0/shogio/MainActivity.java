@@ -62,6 +62,9 @@ import java.util.stream.Collectors;
  * メインとなるアクティビティ
  */
 public class MainActivity extends AppCompatActivity {
+    /** ランタイム情報 */
+    private final Runtime runtime = Runtime.getRuntime();
+
     /** main thread */
     private Thread t1;
 
@@ -92,7 +95,7 @@ public class MainActivity extends AppCompatActivity {
     /**
      * @param savedInstanceState If the activity is being re-initialized after
      *     previously being shut down then this Bundle contains the data it most
-     *     recently supplied in {@link #onSaveInstanceState}.  <b><i>Note: Otherwise it is null.</i></b>
+     *     recently suppli.  <b><i>Note: Otherwise it is null.</i></b>
      *
      */
     @Override
@@ -323,14 +326,15 @@ public class MainActivity extends AppCompatActivity {
                 viewModel.appendLog("action failed e=" + e.getMessage());
                 return false;
             }
+            return true;
         } else if (id == R.id.engine_clean) {
             try {
                 this.getForGui().send(new TeTable(new Table(null, 0), 0));
-                return true;
             } catch (InterruptedException e) {
                 viewModel.appendLog("Got the error myAction e=" + e.getMessage());
                 return false;
             }
+            return true;
         } else if (id == R.id.engine_read_csa) {
             return this.readCsa();
         } else if (id == R.id.action_policy) {
@@ -350,11 +354,11 @@ public class MainActivity extends AppCompatActivity {
                 } else {
                     return false;
                 }
-                return true;
             } catch (InterruptedException e) {
                 viewModel.appendLog("Got the error myAction e=" + e.getMessage());
                 return false;
             }
+            return true;
         } else if (id == R.id.action_flipping_vertical) {
             try {
                 TeTable teTable = viewModel.getCanvasTeTable().getValue();
@@ -364,11 +368,11 @@ public class MainActivity extends AppCompatActivity {
                 } else {
                     return false;
                 }
-                return true;
             } catch (InterruptedException e) {
                 viewModel.appendLog("Got the error myAction e=" + e.getMessage());
                 return false;
             }
+            return true;
         } else if (id == android.R.id.home) {
             finish(); // ひとつ前に戻る
             return true;
@@ -522,7 +526,6 @@ public class MainActivity extends AppCompatActivity {
     /** メモリやスレッドの状態を表示する */
     protected void showThreadStatus() {
         try {
-            Runtime runtime = Runtime.getRuntime();
             // 使用中のメモリ量 (バイト)
             long usedMemory = runtime.totalMemory() - runtime.freeMemory();
             // MBに変換する場合

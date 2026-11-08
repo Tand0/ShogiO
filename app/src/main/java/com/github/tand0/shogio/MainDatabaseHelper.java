@@ -29,31 +29,10 @@ import java.util.zip.ZipInputStream;
 public class MainDatabaseHelper extends SQLiteOpenHelper implements MainDatabase {
 
     /** バージョンの定義 */
-    private static final int DATABASE_VERSION = 19;
-
-    /** データベース名のasset側のzipのファイル名 **/
-    private static final String DATABASE_ZIP_NAME = "mytable_small.zip";
-
-    /** データベース名 **/
-    private static final String DATABASE_NAME = "mytable_small.db";
+    private static final int DATABASE_VERSION = 20;
 
     /** ファイルの解凍を別スレッドで実施するためのクラス */
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
-
-    /**  テーブル名とカラム名の定義 */
-    public static final String TABLE_NAME = "mytable";
-    /** 主キーその1 */
-    public static final String KEY1 = "key1";
-    /** 主キーその2 */
-    public static final String KEY2 = "key2";
-    /** 主キーその3 */
-    public static final String KEY3 = "key3";
-    /** 主キーその4 */
-    public static final String KEY4 = "key4";
-    /** パラメータ(win値) */
-    public static final String WIN = "win";
-    /** パラメータ(los値) */
-    public static final String LOS = "los";
 
     /** OK牧場フラグ
      * True: DBはあるので先に進めてよい

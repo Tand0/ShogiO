@@ -7,8 +7,6 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /** テーブル定義 */
 public interface TableDefine {
@@ -22,20 +20,11 @@ public interface TableDefine {
     /** 引き分けの文字列 */
     String STRING_DRAW = "%HIKIWAKE";
 
-    /** zip形式ファイル */
-    String EXTENSION_ZIP = "zip";
-
     /** CSA形式ファイル */
     String EXTENSION_CSA = "csa";
 
     /** 定跡ファイル */
     String EXTENSION_DB = "db";
-
-    /** 成りフラグ */
-    byte NARI = 0x10; // 0b00010000
-
-    /** 後手フラグ */
-    byte ENEMY = 0x20; // 0b00100000
 
     /** 空白 */
     byte pNull = 0;
@@ -56,35 +45,30 @@ public interface TableDefine {
     /** 王 */
     byte pK = 8; // 玉
     //
-    /** と */
-    byte ppP = (byte) (NARI | pP); // と
-    /** 竜 */
-    byte ppR = (byte) (NARI | pR); // 竜
-    /** 馬 */
-    byte ppB = (byte) (NARI | pB); // 馬
-    /** 成り銀 */
-    byte ppS = (byte) (NARI | pS); // 銀成
-    /** 成り桂 */
-    byte ppN = (byte) (NARI | pN); // 桂成
-    /** 成り香 */
-    byte ppL = (byte) (NARI | pL); // 香成
 
     /** 後手 歩 */
-    byte pp = (byte) (ENEMY | pP); // 歩
+    byte pp = Table.addSideKoma(pP, 1); // 歩
+
     /** 後手 香車 */
-    byte pl = (byte) (ENEMY | pL); // 香
+    byte pl = Table.addSideKoma(pL, 1); // 香
+
     /** 後手 桂馬 */
-    byte pn = (byte) (ENEMY | pN); // 桂
+    byte pn = Table.addSideKoma(pN, 1); // 桂
+
     /** 後手 銀 */
-    byte ps = (byte) (ENEMY | pS); // 銀
+    byte ps = Table.addSideKoma(pS, 1); // 銀
+
     /** 後手 角 */
-    byte pb = (byte) (ENEMY | pB); // 角
+    byte pb = Table.addSideKoma(pB, 1); // 角
+
     /** 後手 飛車 */
-    byte pr = (byte) (ENEMY | pR); // 飛
+    byte pr = Table.addSideKoma(pR, 1); // 飛
+
     /** 後手 金 */
-    byte pg = (byte) (ENEMY | pG); // 金
+    byte pg = Table.addSideKoma(pG, 1); // 金
+
     /** 後手 玉 */
-    byte pk = (byte) (ENEMY | pK); // 玉
+    byte pk = Table.addSideKoma(pK, 1); // 玉
 
     /** 升の最大値 */
     int B_MAX = 9;
@@ -92,260 +76,12 @@ public interface TableDefine {
     /** moveで持ちコマを打った時の oldXY 値 */
     int BEAT = 9;
 
-    /** コマを CSA文字に変換
-     *
-     * @param koma コマ
-     * @return CSA文字
-     */
-    static String getKomaToString(int koma) {
-        koma = koma & (~ENEMY);
-        return switch (koma) {
-            case pP -> "FU";// 歩
-            case pL -> "KY";// 香
-            case pN -> "KE";// 桂
-            case pS -> "GI";// 銀
-            case pG -> "KI";// 金
-            case pB -> "KA";// 角
-            case pR -> "HI";// 飛
-            case pK -> "OU";// 玉
-            case ppP -> "TO";// と
-            case ppL -> "NY";// 香成
-            case ppN -> "NK";// 桂成
-            case ppS -> "NG";// 銀成
-            case ppB -> "UM";// 馬
-            case ppR -> "RY";// 竜
-            default -> "* ";// 空白
-        };
-    }
-
-    /** コマを 漢字に変換
-     *
-     * @param koma コマ
-     * @return CSA文字
-     */
-    static String getKomaToKanji(int koma) {
-        koma = koma & (~ENEMY);
-        return switch (koma) {
-            case pP -> "歩";// 歩
-            case pL -> "香";// 香
-            case pN -> "桂";// 桂
-            case pS -> "銀";// 銀
-            case pG -> "金";// 金
-            case pB -> "角";// 角
-            case pR -> "飛";// 飛
-            case pK -> "王";// 玉
-            case ppP -> "と";// と
-            case ppL -> "香成";// 香成
-            case ppN -> "桂成";// 桂成
-            case ppS -> "銀成";// 銀成
-            case ppB -> "馬";// 馬
-            case ppR -> "竜";// 竜
-            default -> "＊";// 空白
-        };
-    }
-
-    /** CSA文字をコマに変換
-     *
-     * @param komaString CSA文字
-     * @return コマ
-     */
-    static byte getStringToKoma(String komaString) {
-        return switch (komaString.toUpperCase()) {
-            case "FU" -> pP;
-            case "KY" -> pL;// 香
-            case "KE" -> pN;// 桂
-            case "GI" -> pS;// 銀
-            case "KI" -> pG;// 金
-            case "KA" -> pB;// 角
-            case "HI" -> pR;// 飛
-            case "OU" -> pK;// 玉
-            case "TO" -> ppP;// と
-            case "NY" -> ppL;// 香成
-            case "NK" -> ppN;// 桂成
-            case "NG" -> ppS;// 銀成
-            case "UM" -> ppB;// 馬
-            case "RY" -> ppR;// 竜
-            default -> pNull;
-        };
-    }
-
-    /** 変更する
-     *
-     * @param te 手
-     * @return CSA文字
-     */
-    static String changeTeIntToString(int te) {
-        if (te == TableDefine.LOS) { // 次に指す手がない
-            return STRING_LOS;
-        } else if (te == TableDefine.WIN) { // 入玉勝ち
-            return STRING_WIN; // 24点法を採用
-        }
-        StringBuilder buff = new StringBuilder();
-        int koma = (te >> (6 * 4)) & 0x3F;
-        buff.append(((koma & ENEMY) == 0) ? '+' : '-');
-        int oldY = te & 0x1F;
-        int oldX = (te >> 6) & 0x1F;
-        if (oldY == BEAT) { // 打った
-            buff.append('0');
-            buff.append('0');
-        } else {
-            buff.append((char) ('1' + oldX));
-            buff.append((char) ('1' + oldY));
-        }
-        int newY = (te >> (6 * 2)) & 0x1F;
-        int newX = (te >> (6 * 3)) & 0x1F;
-        buff.append((char) ('1' + newX));
-        buff.append((char) ('1' + newY));
-        buff.append(getKomaToString(koma));
-        return buff.toString();
-    }
-
-    /** 変更する
-     *
-     * @param te 手
-     * @return CSA文字
-     */
-    static String changeTeIntToKangiString(int te) {
-        if (te == TableDefine.LOS) { // 次に指す手がない
-            return "%TORYO";
-        } else if (te == TableDefine.WIN) { // 入玉勝ち
-            return "%KACHI";
-        }
-        int index;
-        StringBuilder buff = new StringBuilder();
-        int koma = (te >> (6 * 4)) & 0x3F;
-        buff.append(((koma & ENEMY) == 0) ? "先手▲" : "後手△");
-        int oldY = te & 0x1F;
-        int newY = (te >> (6 * 2)) & 0x1F;
-        int newX = (te >> (6 * 3)) & 0x1F;
-        final String[] newXString = {"１","２","３","４","５","６","７","８","９","Ⅹ"};
-        index = Math.min(newX, newXString.length - 1);
-        buff.append(newXString[index]);
-        final String[] newYString = {"一","二","三","四","五","六","七","八","九","Ⅹ"};
-        index = Math.min(newY, newYString.length - 1);
-        buff.append(newYString[index]);
-        buff.append(getKomaToKanji(koma));
-        if (oldY == BEAT) { // 打った
-            buff.append("打");
-        } else {
-            buff.append("＿");
-        }
-        return buff.toString();
-    }
-    /** 変更する
-     *
-     * @param csaTe CSA文字
-     * @return 手
-     */
-    static int changeTeStringToInt(String csaTe) {
-        if (csaTe.length() < 7) {
-            return 0;
-        }
-        int myTurn = csaTe.charAt(0) == '+' ? 0 : 1;
-        String komaString = csaTe.substring(5, 7);
-        int oldX = csaTe.charAt(1);
-        int oldY = csaTe.charAt(2);
-        if (oldY == '0') {
-            oldX = BEAT;
-            oldY = BEAT;
-        } else {
-            oldX = oldX - '1';
-            oldY = oldY - '1';
-        }
-        int newX = csaTe.charAt(3) - '1';
-        int newY = csaTe.charAt(4) - '1';
-        byte koma = getStringToKoma(komaString);
-        koma = (byte) (koma | (myTurn * ENEMY));
-        return changeTeToInt(koma, oldX, oldY, newX, newY);
-    }
-    /** 変更する。
-     * 入力を -3333FU,T12 としたとき、12秒になる。
-     * @param csaTe CSA文字
-     * @return 経過時間
-     */
-    static int changeTeStringToTime(String csaTe) {
-        final Pattern pattern = Pattern.compile(",T(\\d+)");
-        Matcher matcher = pattern.matcher(csaTe);
-        if (! matcher.find()) {
-            return 0;
-        }
-        String timeString = matcher.group(1);
-        if (timeString == null) {
-            return 0;
-        }
-        int time;
-        try {
-            time = Integer.parseInt(timeString);
-        } catch(NumberFormatException e) {
-            time = 0;
-        }
-        return time;
-    }
-
-    /** 変更する
-     *
-     * @param koma コマ
-     * @param oldX 移動前x、打つ場合は BEAT
-     * @param oldY 移動前y
-     * @param newX 移動後x
-     * @param newY 移動後y
-     * @return 手
-     */
-    static int changeTeToInt(byte koma, int oldX, int oldY, int newX, int newY) {
-        return oldY | (oldX << 6) | (newY << (6 * 2)) | (newX << (6 * 3)) | (koma << (6 * 4));
-    }
-
-    /**
-     * 手から oldY を取得する
-     * @param te 手
-     * @return old Y
-     */
-    static int changeTeToOldY(int te) {
-        return te & 0x1F;
-    }
-
-    /**
-     * 手から oldX を取得する
-     * @param te 手
-     * @return old X
-     */
-    static int changeTeToOldX(int te) {
-        return (te >>> 6) & 0x1F;
-    }
-
-    /**
-     * 手から newY を取得する
-     * @param te 手
-     * @return new Y
-     */
-    static int changeTeToNewY(int te) {
-        return (te >>> (6 * 2)) & 0x1F;
-    }
-
-    /**
-     * 手から newX を取得する
-     * @param te 手
-     * @return new X
-     */
-    static int changeTeToNewX(int te) {
-        return (te >>> (6 * 3)) & 0x1F;
-    }
-
-    /**
-     * 手からコマを取得する
-     * @param te 手
-     * @return コマ
-     */
-    static byte changeTeToKoma(int te) {
-        return (byte) ((te >>> (6 * 4)) & 0x3F);
-    }
-
     /**
      * 勝ったとき。１一空白はteとして置けないので、
      * この値を勝った時のキーとして使う。
      * 主にすでに詰ませている状態の te として使う。
      */
-    int WIN = changeTeStringToInt("+0000* ");
+    int WIN = Table.changeTeStringToInt("+0000* ");
 
     /**
      * 負けたとき、0を負けた時のキーとして使う。
@@ -441,15 +177,15 @@ public interface TableDefine {
     static void runFileCsaStream(
             List<EvalTeTable> eval, boolean learn, InputStream is, int rate)
             throws IOException {
+        int sameSum = 0;
+        List<TeTable> nextList = new ArrayList<>();
         try (BufferedReader br = new BufferedReader(
                 new InputStreamReader(is, StandardCharsets.UTF_8))) {
             String str;
             float blackRate = 0.0f;
             float whiteRate = 0.0f;
-            //
-            List<TeTable> nextList = new ArrayList<>();
             // 最初の局面
-            TeTable teTable = new TeTable(new Table(null, 0),0);
+            TeTable teTable = new TeTable(new Table(null, 0), 0);
             while ((str = br.readLine()) != null) {
                 if (str.isEmpty()) {
                     continue;
@@ -485,9 +221,9 @@ public interface TableDefine {
                     continue;
                 }
                 if ((ch == '+') || (ch == '-')) {
-                    int te = TableDefine.changeTeStringToInt(str);
-                    Table nextTable = new Table(nextList.getLast().table,te);
-                    TeTable nextTeTable = new TeTable(nextTable,te);
+                    int te = Table.changeTeStringToInt(str);
+                    Table nextTable = new Table(nextList.getLast().table, te);
+                    TeTable nextTeTable = new TeTable(nextTable, te);
                     nextList.addLast(nextTeTable); //打った手を保存
                     continue;
                 }
@@ -499,60 +235,138 @@ public interface TableDefine {
                 // かつ、先後両方ともが rate が指定値以下の時は ignore する
                 return;
             }
-            //
-            // 勝敗判定：
-            boolean stopCheck = true;
-            int winLos = -1; // -1:引き分け、0先手勝ち、1:後手勝ち
-            for (int i = nextList.size() - 1;  0<= i; i--) {
-                // 棋譜の後ろから前に渡っての検索
-                TeTable item = nextList.get(i);
-                if (stopCheck) {
-                    // 入玉と勝ち負けチェック
+        }
+        //
+        // 勝敗判定：
+        boolean stopCheck = true;
+        int winLos = -1; // -1:引き分け、0先手勝ち、1:後手勝ち
+        for (int i = nextList.size() - 1; 0 <= i; i--) {
+            // 棋譜の後ろから前に渡っての検索
+            TeTable item = nextList.get(i);
+            final long[] memento = item.table.createUndo(); // cloneを作って戻せるようにする
+            AllBitboard all = new AllBitboard(item.table);
+            if (stopCheck) {
+                // 入玉と勝ち負けチェック
+                //
+                // 手番
+                int side = item.table.getSide();
+                //
+                // 先手が入玉している
+                int res = item.table.isKingWin(0, all);
+                if (res == 0) {
+                    // 先手は入玉していないので、後手が入玉しているかチェック
+                    res = item.table.isKingWin(1, all);
+                }
+                if (res != 0) {
+                    // どちらが入玉勝ちを宣言したら後手勝ち扱いにする
+                    winLos = 1;
+                } else if (i != nextList.size() - 1) {
+                    // 入玉勝ち宣言されず、かつ、
+                    // 2回目以降のループなので winLos の確定は不要
+                    stopCheck = false; // 遡り不要
+                } else {
+                    // 入玉勝ち宣言されず、かつ
+                    // 最初のループなので winLos の確定が必要
+                    stopCheck = false; // 遡り不要
                     //
-                    // 手番
-                    int teban = item.table.getTeban();
-                    //
-                    // 先手が入玉している
-                    int res = item.table.isKingWin(
-                            0, item.table.getSenteOuX(), item.table.getSenteOuY());
-                    if (res == 0) {
-                        // 先手は入玉していないので、後手が入玉しているかチェック
-                        res = item.table.isKingWin(
-                                1, item.table.getGoteOuX(), item.table.getGoteOuY());
-                    }
-                    if (res != 0) {
-                        // どちらが入玉勝ちを宣言したら後手勝ち扱いにする
-                        winLos = 1;
-                    } else if (i != nextList.size() - 1) {
-                        // 入玉勝ち宣言されず、かつ、
-                        // 2回目以降のループなので winLos の確定は不要
-                        stopCheck = false; // 遡り不要
+                    // 詰み/勝ちのチェックが始まる
+                    int te = LOS;
+                    te = item.table.iterate(te, memento, all);
+                    item.table.setUndo(memento); // 元に戻す
+                    if (te == LOS) {
+                        winLos = side;
+                    } else if (te == WIN) {
+                        winLos = 1 - side;
                     } else {
-                        // 入玉勝ち宣言されず、かつ
-                        // 最初のループなので winLos の確定が必要
-                        stopCheck = false; // 遡り不要
-                        //
-                        // 詰み/勝ちのチェックが始まる
-                        List<TeTable> childList = item.table.createChild();
-                        if (childList.isEmpty()) { // 詰み
-                            winLos = teban;
-                        } else if (TableDefine.checkWinTeTableList(childList)) { // 勝ち
-                            winLos = 1 - teban;
-                        } else { // 詰みか、勝ちの場合以外
-                            if ((!learn) && (rate != 0)) {
-                                // 学習モードでない、かつ、rateも0でない
-                                // 学習せず skip
-                                return;
+                        if ((!learn) && (rate != 0)) {
+                            // 学習モードでない、かつ、rateも0でない
+                            // 学習せず skip
+                            return;
+                        }
+                        winLos = -1;
+                    }
+                }
+            }
+            long winMax = (i == nextList.size() - 1) ? 1L : 10L;
+            long losMax = (i == nextList.size() - 1) ? 0L : 1L;
+            long winLong = (winLos == -1) ? 0 : (winLos == 0) ? winMax : losMax;
+            long losLong = (winLos == -1) ? 0 : (winLos == 0) ? losMax : winMax;
+            //
+            eval.addFirst(new EvalTeTable(item.table, item.te, winLong, losLong));
+        }
+        //
+        if (winLos == -1) {
+            return; // 引き分けの場合、同一盤面チェックはしない
+        }
+        //
+        // 盤面が同じ局面がある場合、以降の勝率を下げる
+        EvalTeTable x;
+        int i = 0;
+        for ( ; i < eval.size(); i++) {
+            x = eval.get(i);
+            if ((x.win == 1) || (x.los == 1)) {
+                break;
+            }
+            for (int j = i + 1; j < eval.size(); j++) {
+                EvalTeTable y = eval.get(j);
+                if ((y.win == 1) || (y.los == 1)) {
+                    break;
+                }
+                if (x.table.equalsTableOnly(y.table)) {
+                    //
+                    // まずはコマの増減をチェックする
+                    for (byte koma = TableDefine.pR; TableDefine.pP <= koma; koma--) {
+                        // 大ゴマから増減チェックする
+                        int target = y.table.getTegoma(koma, 0)
+                                - x.table.getTegoma(koma, 0);
+                        if (target != 0) {
+                            if (sameSum == 0) {
+                                sameSum = target;
+                            } else if (((sameSum < 0) && (0 < target))
+                                    || ((0 < sameSum) && (target < 0))) {
+                                sameSum = 0;
+                                break;
                             }
-                            winLos = -1;
                         }
                     }
                 }
-                int sum = (i == nextList.size() - 1) ? 1 : 2;
-                long winLong = (winLos == -1) ? sum : (long) winLos * sum;
-                long losLong = (winLos == -1) ? sum : (long) (1 - winLos) * sum;
-                //
-                eval.add(new EvalTeTable(item.table, item.te, winLong, losLong));
+                if (sameSum != 0) {
+                    break;  // hitしたのでブレークする
+                }
+            }
+            if (sameSum != 0) {
+                break;  // hitしたのでブレークする
+            }
+        }
+        if (sameSum == 0) {
+            return;  // 同じ盤面でかつ、一方敵にコマが減っているものがなかった
+        }
+        // hit した場合ここにくる
+        //
+        // 状況：
+        //   sameSum が正のとき、先手のコマが増えた。⇒先手有利
+        //   sameSum が負のとき、先手のコマが減った。⇒先手不利
+        //
+        // やりたいこと:
+        // 同一局面で先手勝ち(y.win==3)のとき、先手より有利(0<sameSum)なら、同一局面以前のwin値を下げる
+        // 同一局面で先手勝ち(y.win==3)のとき、先手より不利(sameSum<0)なら、同一局面以降のwin値を下げる
+        // 同一局面で後手勝ち(y.los==3)のとき、先手より有利(0<sameSum)なら、同一局面以降のlos値を下げる
+        // 同一局面で後手勝ち(y.los==3)のとき、先手より不利(sameSum<0)なら、同一局面以前のlos値を下げる
+        boolean isAfter = (winLos == 0) ? 0 < sameSum : 0 > sameSum;
+        List<EvalTeTable> evalOld = new ArrayList<>(eval);
+        eval.clear();
+        for (int j = 0; j < evalOld.size() ; j++) {
+            EvalTeTable y = evalOld.get(j);
+            if ((y.win == 1) || (y.los == 1)) {
+                eval.add(y);
+            } else if ((i + 1 <= j) ^ isAfter) {
+                eval.add(y);
+            } else {
+                long win = y.win;
+                win = 1 < win ? win - 1 : win;
+                long los = y.los;
+                los = 1 < los ? los - 1 : los;
+                eval.add(new EvalTeTable(y.table, y.te, win, los));
             }
         }
     }
@@ -607,7 +421,7 @@ public interface TableDefine {
                     }
                     //
                     // 定跡は勝ち負けありの５割とする
-                    eval.add(new EvalTeTable(table,0,10L,10L));
+                    eval.add(new EvalTeTable(table,0,1000L,1000L));
                     //
                 } else {
                     // 指し手チェック
@@ -653,7 +467,7 @@ public interface TableDefine {
      * @return オブジェクト
      */
     static BadMoveResult getBadMoveList(MainDatabase base, Table table) {
-        int myTurn = table.getTeban(); // 0:先手、1:後手
+        int myTurn = table.getSide(); // 0:先手、1:後手
         List<TeTable> teTableList = table.createChild();
         if (teTableList.isEmpty()) {
             // 詰んでいる
@@ -725,7 +539,7 @@ public interface TableDefine {
         for (int x = 0 ; x < TableDefine.B_MAX ; x++ ) {
             for (int y = 0 ; y < TableDefine.B_MAX ; y++ ) {
                 byte koma = table.getKoma(x,y);
-                if ((koma == 0) || (0 != (koma & TableDefine.ENEMY))) {
+                if ((koma == 0) || (0 != Table.isSideKoma(koma))) {
                     continue;
                 }
                 float ans = inputGen.get(x, y, InputGen.DANGER_CHANNEL)
@@ -752,15 +566,15 @@ public interface TableDefine {
         final long BORDER = 100;
         //
         List<TeTable> childList = table.createChild();
-        int teban = table.getTeban();
+        int side = table.getSide();
         if (childList.isEmpty()) {
-            win = teban; // 手番が0なら先手が詰み
-            los = 1 - teban; // 手番が1なら後手が詰み
+            win = side; // 手番が0なら先手が詰み
+            los = 1 - side; // 手番が1なら後手が詰み
             return new EvalMoveResult(win, los);
         }
         if (TableDefine.checkWinTeTableList(childList)) {
-            win = 1 - teban; // 手番が先手なら先手勝ち
-            los = teban; // 手番が後手なら後手勝ち
+            win = 1 - side; // 手番が先手なら先手勝ち
+            los = side; // 手番が後手なら後手勝ち
             return new EvalMoveResult(win, los);
         }
         //
@@ -810,7 +624,7 @@ public interface TableDefine {
      * @param teTableList teTable のリスト
      * @return True:勝っている, False:勝っていない
      */
-    static boolean checkWinTeTableList(List<TeTable> teTableList) {
+    static boolean checkWinTeTableList(List<? extends TeTable> teTableList) {
         return (teTableList.size() == 1) && (teTableList.getFirst().te == TableDefine.WIN);
     }
 }

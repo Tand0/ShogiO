@@ -1,6 +1,4 @@
 package com.github.tand0.shogio.tab;
-import static com.github.tand0.shogio.util.TableDefine.BEAT;
-import static com.github.tand0.shogio.util.TableDefine.ENEMY;
 
 import android.content.Context;
 import android.graphics.Canvas;
@@ -22,7 +20,6 @@ import com.github.tand0.shogio.engin.EngineManual;
 import com.github.tand0.shogio.engin.EngineRequest;
 import com.github.tand0.shogio.engin.EngineResponse;
 import com.github.tand0.shogio.util.EvalTeTable;
-import com.github.tand0.shogio.util.ExplorerTable;
 import com.github.tand0.shogio.util.Table;
 import com.github.tand0.shogio.util.TableDefine;
 import com.github.tand0.shogio.util.TeTable;
@@ -41,16 +38,16 @@ public class AndCanvasView extends View {
     private int dispMode = 0;
 
     /** 移動前の X 位置 */
-    private float x0 = -200.0f;
+    private float newX = -200.0f;
 
     /** 移動前の Y 位置 */
-    private float y0 = -200.0f;
+    private float newY = -200.0f;
 
     /** 移動後の X 位置 */
-    private float x1 = -200.0f;
+    private float oldX = -200.0f;
 
     /** 移動後の Y 位置 */
-    private float y1 = -200.0f;
+    private float oldY = -200.0f;
 
     /** 画面の大きさの最大値：x軸 */
     private float xMax;
@@ -74,7 +71,7 @@ public class AndCanvasView extends View {
     private int evalTeTablePos = 0;
 
     /** evalTeTable 情報 */
-    private List<TeTable> evalTeTableList = null;
+    private List<? extends TeTable> evalTeTableList = null;
 
     /**
      * コンストラクタ
@@ -175,22 +172,22 @@ public class AndCanvasView extends View {
     protected void onDrawTable(@NonNull Canvas canvas) {
         paint.setStrokeWidth(2);
         //
-        if ((-100 <= x0) && (-100 <= y0)) {
+        if ((-100 <= newX) && (-100 <= newY)) {
             // 打つ元を決める
             paint.setColor(Color.CYAN);
             paint.setStyle(Paint.Style.FILL);
-            float xPos = xMax * (2 + (8 - x0)) / xRMax;
-            float yPos = yMax * (1 + y0) / yRMax;
+            float xPos = xMax * (2 + (8 - newX)) / xRMax;
+            float yPos = yMax * (1 + newY) / yRMax;
             canvas.drawRect(
                     xPos, yPos,
                     xPos + xMax / xRMax, yPos + yMax / yRMax, paint);
         }
-        if ((-100 <= x1) && (-100 <= y1)) {
+        if ((-100 <= oldX) && (-100 <= oldY)) {
             // 打つ先を決める
             paint.setColor(Color.LTGRAY);
             paint.setStyle(Paint.Style.FILL);
-            float xPos = xMax * (2 + (8 - x1)) / xRMax;
-            float yPos = yMax * (1 + y1) / yRMax;
+            float xPos = xMax * (2 + (8 - oldX)) / xRMax;
+            float yPos = yMax * (1 + oldY) / yRMax;
             canvas.drawRect(
                     xPos, yPos,
                     xPos + xMax / xRMax, yPos + yMax / yRMax, paint);
@@ -234,7 +231,7 @@ public class AndCanvasView extends View {
         if (teTable == null) {
             return; // tableが無いので置かなくてよい
         }
-        canvas.drawText(teTable.table.getTeban() == 0 ? "先手" : "後手", 0, yMax * 9 / yRMax -8, paint);
+        canvas.drawText(teTable.table.getSide() == 0 ? "先手" : "後手", 0, yMax * 9 / yRMax -8, paint);
         //
         //
         paint.setColor(Color.BLACK);
@@ -243,11 +240,11 @@ public class AndCanvasView extends View {
             int piece1 = teTable.table.getTegoma(y,1);
             // 先手側
             if (piece0 != 0) {
-                canvas.drawText(TableDefine.getKomaToKanji(y) + piece0, (xMax * 12) / xRMax, yMax * (3 + y) / yRMax - 8, paint);
+                canvas.drawText(Table.getKomaToKanji(y) + piece0, (xMax * 12) / xRMax, yMax * (3 + y) / yRMax - 8, paint);
             }
             // 後手側
             if (piece1 != 0) {
-                canvas.drawText(TableDefine.getKomaToKanji(y) + piece1, 0, yMax * (1 + y) / yRMax - 8, paint);
+                canvas.drawText(Table.getKomaToKanji(y) + piece1, 0, yMax * (1 + y) / yRMax - 8, paint);
             }
         }
         // 先手の局面描写
@@ -271,18 +268,17 @@ public class AndCanvasView extends View {
      * @param yMax y最大
      */
     protected void onDrawTableOne(Canvas canvas, TeTable teTable, int senGo, float size, float xMax, float yMax) {
-        byte pieceMask = (senGo == 0) ? 0 : (byte)0x20;
         for (int x = 0 ; x < TableDefine.B_MAX ; x++) {
             for (int y = 0; y < TableDefine.B_MAX; y++) {
-                byte piece = teTable.table.getKoma(x, y);
-                if (((piece & 0x20) == pieceMask) && (piece != 0)) { // 後手で空白除く
-                    if ((piece & 0x10) == 0) { // 成りか？
-                        paint.setColor(Color.BLACK);
+                byte koma = teTable.table.getKoma(x, y);
+                if ((Table.isSideKoma(koma) == senGo) && (koma != 0)) { // 後手で空白除く
+                    if (!Table.isNariKoma(koma)) {
+                        paint.setColor(Color.BLACK); // 成ってない
                     } else {
-                        paint.setColor(Color.RED);
+                        paint.setColor(Color.RED); // 成っている
                     }
                     paint.setTextSize(size - 4);
-                    String kanji = TableDefine.getKomaToKanji(piece & 0x1F);
+                    String kanji = Table.getKomaToKanji(koma);
                     onDrawTableKoma(canvas, kanji, senGo, x, y, size, xMax, yMax);
                 }
             }
@@ -353,8 +349,6 @@ public class AndCanvasView extends View {
             TeTable teTable = evalTeTableList.get(i);
             if (teTable instanceof EvalTeTable) {
                 eval = ((EvalTeTable)teTable).eval;
-            } else if (teTable instanceof ExplorerTable) {
-                eval = ((ExplorerTable)teTable).getEval();
             }
             float x1 = eval * (xMax - x0) + x0;
             float y1 = (i * (xMax - y0) / iMax) + y0;
@@ -442,83 +436,83 @@ public class AndCanvasView extends View {
             return false;
         }
         int tableTurn = -1;
-        List<TeTable> x = viewModel.getTeTableList().getValue();
+        List<? extends TeTable> x = viewModel.getTeTableList().getValue();
         if (x != null) {
             tableTurn = x.size();
         }
         performClick();
         //
-        if ((-100 < x0) && (-100 < x1)) {
+        if ((-100 < newX) && (-100 < oldX)) {
             clearXY(); // 両方に値が入っていたらクリアする
         } else {
             // 値を取得する
-            x1 = x0;
-            y1 = y0;
-            x0 = ((int) (-event.getX() * xRMax / xMax)) + 2 + 8;
-            y0 = ((int) (event.getY() * yRMax / yMax)) - 1;
+            oldX = newX;
+            oldY = newY;
+            newX = ((int) (-event.getX() * xRMax / xMax)) + 2 + 8;
+            newY = ((int) (event.getY() * yRMax / yMax)) - 1;
             //
-            if ((x0 == 10) && (y0 == 8)) {
+            if ((newX == 10) && (newY == 8)) {
                 isPromoteFlag = !isPromoteFlag;
                 clearXY(); // クリアする
-            } else if ((x0 == 9) && (y0 == 8)) {
+            } else if ((newX == 9) && (newY == 8)) {
                 // 表示モードを替える
                 dispMode = (dispMode + 1) % 2;
                 clearXY(); // クリアする
-            } else if (((x1 == x0) && (y1 == y0))
-                    || (x0 == -1)
-                    || (x0 == -3)
-                    || (x0 == 9)
-                    || (y0 == -1) ) {
+            } else if (((oldX == newX) && (oldY == newY))
+                    || (newX == -1)
+                    || (newX == -3)
+                    || (newX == 9)
+                    || (newY == -1) ) {
                 clearXY();
-            } else if (x1 < -100) {
+            } else if (oldX < -100) {
                 // x0 のみ設定されているとき
                 //
-                int myTurn = teTable.table.getTeban();
-                if (x0 == 10) { // 後手の手のコマ
-                    byte piece = (byte)(y0 + 1);
-                    if ((myTurn == 0) || (teTable.table.getTegoma(piece,myTurn) <= 0)) {
-                        x0 = -200.0f;
-                        y0 = -200.0f;
+                int mySide = teTable.table.getSide();
+                if (newX == 10) { // 後手の手のコマ
+                    byte piece = (byte)(newY + 1);
+                    if ((mySide == 0) || (teTable.table.getTegoma(piece,mySide) <= 0)) {
+                        newX = -200.0f;
+                        newY = -200.0f;
                     }
-                } else if (x0 == -2) { // 先手の手のコマ
-                    byte piece = (byte)(y0 - 1);
-                    if ((myTurn != 0) || (teTable.table.getTegoma(piece,myTurn) <= 0)) {
-                        x0 = -200.0f;
-                        y0 = -200.0f;
+                } else if (newX == -2) { // 先手の手のコマ
+                    byte piece = (byte)(newY - 1);
+                    if ((mySide != 0) || (teTable.table.getTegoma(piece,mySide) <= 0)) {
+                        newX = -200.0f;
+                        newY = -200.0f;
                     }
                 } else {
                     // 局面上から選択する
-                    byte piece = teTable.table.getKoma((int)x0, (int)y0);
+                    byte piece = teTable.table.getKoma((int) newX, (int) newY);
                     if ((piece == TableDefine.pNull)
-                            || ((piece & 0x20) == ENEMY) == (myTurn == 0)) {
+                            || (Table.isSideKoma(piece) == mySide)) {
                         // 空白 or 持ちコマでない
-                        x0 = -200.0f;
-                        y0 = -200.0f;
+                        newX = -200.0f;
+                        newY = -200.0f;
                     }
                 }
             } else {
                 // x0, x1 とも設定されているとき
-                if ((0 <= x0) && (x0 < 9) && (0 <= y0) && (y0 <= 9)) {
+                if ((0 <= newX) && (newX < 9) && (0 <= newY) && (newY <= 9)) {
                     // 局面上から選択する
-                    int myTurn = teTable.table.getTeban();
-                    byte piece = teTable.table.getKoma((int)x0, (int)y0);
+                    int mySide = teTable.table.getSide();
+                    byte piece = teTable.table.getKoma((int) newX, (int) newY);
                     if ((piece != TableDefine.pNull)
-                            && ((piece & 0x20) == ENEMY) != (myTurn == 0)) {
+                            && (Table.isSideKoma(piece) != mySide)) {
                         // 空白 or 持ちコマでない
-                        x0 = -200.0f;
-                        y0 = -200.0f;
+                        newX = -200.0f;
+                        newY = -200.0f;
                     } else {
                         //
-                        int targetX1 = (int)x1;
-                        int targetY1 = (int)y1;
-                        if (x1 == 10) { // 後手の手のコマ
-                            piece = (byte)(y1 + 1);
-                            targetX1 = BEAT;
-                            targetY1 = BEAT;
-                        } else if (x1 == -2) { // 先手の手のコマ
-                            piece = (byte) (y1 - 1);
-                            targetX1 = BEAT;
-                            targetY1 = BEAT;
+                        int targetX1 = (int) oldX;
+                        int targetY1 = (int) oldY;
+                        if (oldX == 10) { // 後手の手のコマ
+                            piece = (byte)(oldY + 1);
+                            targetX1 = TableDefine.BEAT;
+                            targetY1 = TableDefine.BEAT;
+                        } else if (oldX == -2) { // 先手の手のコマ
+                            piece = (byte) (oldY - 1);
+                            targetX1 = TableDefine.BEAT;
+                            targetY1 = TableDefine.BEAT;
                         } else {
                             piece = teTable.table.getKoma(targetX1,targetY1);
                         }
@@ -528,17 +522,17 @@ public class AndCanvasView extends View {
                         boolean promoteNot = false;
                         //
                         for (TeTable child : teTable.table.createChild()) {
-                            int oldY = TableDefine.changeTeToOldY(child.te);
-                            int oldX = TableDefine.changeTeToOldX(child.te);
-                            int newY = TableDefine.changeTeToNewY(child.te) ;
-                            int newX = TableDefine.changeTeToNewX(child.te);
-                            byte oldPiece = TableDefine.changeTeToKoma(child.te);
+                            int oldY = Table.changeTeToOldY(child.te);
+                            int oldX = Table.changeTeToOldX(child.te);
+                            int newY = Table.changeTeToNewY(child.te) ;
+                            int newX = Table.changeTeToNewX(child.te);
+                            byte oldPiece = Table.changeTeToKoma(child.te);
                             if ((targetX1 == oldX)
                                     && (targetY1 == oldY)
-                                    && ((int)x0 == newX)
-                                    && ((int)y0 == newY)
-                                    && ((oldPiece & 0xF) == (piece & 0xF))) {
-                                if ((oldPiece & TableDefine.NARI) == 0) {
+                                    && ((int) this.newX == newX)
+                                    && ((int) this.newY == newY)
+                                    && (Table.getKomaOnly(oldPiece) == Table.getKomaOnly(piece))) {
+                                if (!Table.isNariKoma(oldPiece)) {
                                     promoteNot = true;
                                 } else {
                                     promoteYes = true;
@@ -554,9 +548,9 @@ public class AndCanvasView extends View {
                                 // 不成も成りも選択できる場合は 成るか？フラグにする
                                 promoteYes = isPromoteFlag;
                             }
-                            piece = promoteYes ? (byte) (piece | TableDefine.NARI) : piece;
-                            piece = promoteYes ? (byte) (piece | TableDefine.NARI) : piece;
-                            int te = TableDefine.changeTeToInt(piece, targetX1, targetY1, (int) x0, (int) y0);
+                            piece = promoteYes ? Table.addNariKoma(piece) : piece;
+                            piece = promoteYes ? Table.addNariKoma(piece) : piece;
+                            int te = Table.changeTeToInt(piece, targetX1, targetY1, (int) newX, (int) newY);
                             if (engineRequest != null) {
                                 EngineResponse res = new EngineResponse(
                                         tableTurn ,te, EngineManual.class,
@@ -581,7 +575,7 @@ public class AndCanvasView extends View {
             }
         }
         //
-        viewModel.appendLog("now x0=" + x0 + " y0=" + y0 + " x1=" + x1 + " y1=" + y1);
+        viewModel.appendLog("now x0=" + newX + " y0=" + newY + " x1=" + oldX + " y1=" + oldY);
         // 更新
         invalidate();
         //
@@ -590,10 +584,10 @@ public class AndCanvasView extends View {
 
     /** クリアする */
     public void clearXY() {
-        x0 = -200.0f;
-        y0 = -200.0f;
-        x1 = -200.0f;
-        y1 = -200.0f;
+        newX = -200.0f;
+        newY = -200.0f;
+        oldX = -200.0f;
+        oldY = -200.0f;
     }
     /** 将棋サーバからの局面情報の更新
      * @param teTable 表示するテーブル
@@ -607,17 +601,17 @@ public class AndCanvasView extends View {
         if ((te == TableDefine.WIN) || (te == TableDefine.LOS)) {
             clearXY();
         } else {
-            y1 = (int) (te & 0x1FL);
-            x1 = (int) ((te >> 6) & 0x1FL);
-            if (y1 == BEAT) { // 打った
-                int piece = (te >> (6 * 4)) & 0x3F;
-                int myTurn = ((piece & ENEMY) == 0) ? 0 : 1;
-                piece = piece & 0xF; // ENEMY/成り フラグも取る
-                x1 = (myTurn == 0) ? -2 : 10;
-                y1 = (myTurn == 0) ? piece + 1: piece - 1;
+            oldY = Table.changeTeToOldY(te);
+            oldX = Table.changeTeToOldX(te);
+            if (oldY == TableDefine.BEAT) { // 打った
+                byte piece = Table.changeTeToKoma(te);
+                int mySide = Table.isSideKoma(piece);
+                byte komaOnly = Table.getKomaOnly(piece); // ENEMY/成り フラグも取る
+                oldX = (mySide == 0) ? -2 : 10;
+                oldY = (mySide == 0) ? komaOnly + 1: komaOnly - 1;
             }
-            y0 = (int) ((te >> (6 * 2)) & 0x1FL);
-            x0 = (int) ((te >> (6 * 3)) & 0x1FL);
+            newY = Table.changeTeToNewY(te);
+            newX = Table.changeTeToNewX(te);
         }
         //
         // GUIを更新する
@@ -628,7 +622,7 @@ public class AndCanvasView extends View {
      * 評価関数のリストを取得する
      * @param evalTeTableList teTableList
      */
-    public void updateEvalTeTableList(List<TeTable> evalTeTableList) {
+    public void updateEvalTeTableList(List<? extends TeTable> evalTeTableList) {
         this.evalTeTablePos = 0;
         this.evalTeTableList = evalTeTableList;
         //

@@ -3,6 +3,10 @@ package com.github.tand0.shogio.util;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 /** TeTable の Test */
 public class TeTableTest {
     /** コンストラクタ：table と te が正しく保持される */
@@ -28,7 +32,7 @@ public class TeTableTest {
     @Test
     public void testDisplayNormal() {
         Table table = new Table(null, 0);
-        TeTable tt = new TeTable(table, TableDefine.changeTeStringToInt("+7776FU"));
+        TeTable tt = new TeTable(table, Table.changeTeStringToInt("+7776FU"));
 
         Assert.assertNotNull(tt.display());
     }
@@ -39,8 +43,8 @@ public class TeTableTest {
         Table t1 = new Table(null, 0);
         Table t2 = new Table(null, 0);
 
-        TeTable a = new TeTable(t1, TableDefine.changeTeStringToInt("+7776FU"));
-        TeTable b = new TeTable(t2, TableDefine.changeTeStringToInt("+7776FU"));
+        TeTable a = new TeTable(t1, Table.changeTeStringToInt("+7776FU"));
+        TeTable b = new TeTable(t2, Table.changeTeStringToInt("+7776FU"));
         Assert.assertEquals(a, b);
     }
 
@@ -59,7 +63,7 @@ public class TeTableTest {
     @Test
     public void testEqualsDifferent() {
         Table t1 = new Table(null, 0);
-        Table t2 = new Table(t1, TableDefine.changeTeStringToInt("+7776FU"));
+        Table t2 = new Table(t1, Table.changeTeStringToInt("+7776FU"));
         //
         TeTable a = new TeTable(t1, TableDefine.LOS);
         TeTable b = new TeTable(t2, TableDefine.LOS);
@@ -71,8 +75,27 @@ public class TeTableTest {
     @Test
     public void testEqualsInvalid() {
         Table t1 = new Table(null, 0);
-        TeTable a = new TeTable(t1,TableDefine.changeTeStringToInt("+7776FU"));
+        TeTable a = new TeTable(t1,Table.changeTeStringToInt("+7776FU"));
 
         Assert.assertNotEquals(null, a);
+    }
+
+    /**
+     * ハッシュのイコールがちゃんと動くか？
+     */
+    @Test
+    public void testHashEquals() {
+        Table table = new Table(null, 0);
+        List<TeTable> tableList1 = table.createChild();
+        List<TeTable> tableList2 = table.createChild();
+        Map<TeTable,PnDnTable> factory = new HashMap<>();
+        for (TeTable teTable : tableList1) {
+            PnDnTable pnDn = new PnDnTable(teTable, 1);
+            factory.put(pnDn, pnDn);
+        }
+        for (TeTable teTable : tableList2) {
+            PnDnTable pnDnTable = factory.get(teTable);
+            Assert.assertNotNull(pnDnTable);
+        }
     }
 }

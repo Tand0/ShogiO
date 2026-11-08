@@ -48,7 +48,7 @@ public class EngineDatabase extends Engine {
         List<TeTable> displayTeTableList = (r.display()) ?  new ArrayList<>() : null;
         int te;
         float eval = 0.5f;
-        int teban = table.getTeban();
+        int side = table.getSide();
         if (nextTeTableList.isEmpty()) {
             te = 0;
         } else {
@@ -62,7 +62,7 @@ public class EngineDatabase extends Engine {
                 if (winLos != null) {
                     long win = winLos[0];
                     long los = winLos[1];
-                    long now = (teban == 0) ? win : los;
+                    long now = (side == 0) ? win : los;
                     if (best < now) {
                         best = now;
                         te = teTable.te;
@@ -91,5 +91,4 @@ public class EngineDatabase extends Engine {
                 r.turn(), te, EngineDatabase.class,
                 displayTeTableList, eval));
     }
-
 }

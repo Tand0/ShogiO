@@ -59,20 +59,6 @@
             android:text="@string/ip_wdoor_c_u_tokyo_ac_jp"
             android:layout_marginStart="100sp"
             android:minHeight="48dp" />
-        <Button
-            android:id="@+id/ip_wgserver_computer_shogi_org"
-            android:layout_width="fill_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/ip_wgserver_computer_shogi_org"
-            android:layout_marginStart="100sp"
-            android:minHeight="48dp" />
-        <Button
-            android:id="@+id/ip_gserver_denryu_sen_jp"
-            android:layout_width="fill_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/ip_gserver_denryu_sen_jp"
-            android:layout_marginStart="100sp"
-            android:minHeight="48dp" />
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -231,9 +217,9 @@
             android:minHeight="48dp"
             android:layout_width="fill_parent"
             android:layout_height="match_parent"
-            android:valueFrom="10.0"
+            android:valueFrom="5.0"
             android:valueTo="100.0"
-            android:value="10.0"
+            android:value="25.0"
             android:stepSize="1.0" />
         <TextView
             android:layout_width="wrap_content"
@@ -247,7 +233,7 @@
             android:layout_height="match_parent"
             android:valueFrom="1.0"
             android:valueTo="10.0"
-            android:value="3.0"
+            android:value="4.0"
             android:stepSize="1.0" />
         <TextView
             android:layout_width="wrap_content"
@@ -261,7 +247,7 @@
             android:layout_height="match_parent"
             android:valueFrom="0.0"
             android:valueTo="10.0"
-            android:value="3.0"
+            android:value="7.0"
             android:stepSize="1.0" />
 
         <Button

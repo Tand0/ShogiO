@@ -29,17 +29,17 @@ public class XYFlag {
     }
     /**
      * 移動先y
-     * @param teban 手番(後手はプラスマイナスが反転する)
+     * @param side 手番(後手はプラスマイナスが反転する)
      * @return 移動先y
      */
-    public int y(int teban) {
-        return (teban == 0) ? y : -y;
+    public int y(int side) {
+        return (side == 0) ? y : -y;
     }
     /**
      * 飛、竜、角、馬、香車のように複数移動するならtrue
      * @return 複数移動するなら true
      */
-    public boolean flag() {
+    public boolean isLongRange() {
         return flag;
     }
 }

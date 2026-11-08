@@ -37,7 +37,7 @@ public class KomaMoveTest {
         assertEquals(1, km.xYFlag.x());
         assertEquals(-1, km.xYFlag.y(0));
         assertEquals(1, km.xYFlag.y(1));
-        assertTrue(km.xYFlag.flag());
+        assertTrue(km.xYFlag.isLongRange());
         assertArrayEquals(koma, km.koma);
     }
 
@@ -54,13 +54,13 @@ public class KomaMoveTest {
         KomaMove m0 = KomaMove.movers.getFirst();
         assertEquals(1, m0.xYFlag.x());
         assertEquals(1, m0.xYFlag.y(0));
-        assertFalse(m0.xYFlag.flag());
+        assertFalse(m0.xYFlag.isLongRange());
         assertArrayEquals(KomaMove.CHECKLIST_downYoko, m0.koma);
 
         KomaMove m4 = KomaMove.movers.get(4);
         assertEquals(0, m4.xYFlag.x());
         assertEquals(-1, m4.xYFlag.y(0));
-        assertFalse(m4.xYFlag.flag());
+        assertFalse(m4.xYFlag.isLongRange());
         assertArrayEquals(KomaMove.CHECKLIST_upUp, m4.koma);
     }
 
@@ -71,7 +71,7 @@ public class KomaMoveTest {
         assertEquals(1, m8.xYFlag.x());
         assertEquals(-2, m8.xYFlag.y(0));
         assertArrayEquals(KomaMove.CHECKLIST_kei, m8.koma);
-        assertFalse(m8.xYFlag.flag());
+        assertFalse(m8.xYFlag.isLongRange());
 
         KomaMove m9 = KomaMove.movers.get(9);
         assertEquals(-1, m9.xYFlag.x());
@@ -79,28 +79,28 @@ public class KomaMoveTest {
         assertArrayEquals(KomaMove.CHECKLIST_kei, m9.koma);
     }
 
-    /** 複数移動チェック（香・飛・角）が flag=true で定義されている */
+    /** 複数移動チェック（香・飛・角）が isLongRange=true で定義されている */
     @Test
     public void testLongRangeMovers() {
         // 香車
         KomaMove kyo = KomaMove.movers.get(10);
         assertEquals(0, kyo.xYFlag.x());
         assertEquals(-1, kyo.xYFlag.y(0));
-        assertTrue(kyo.xYFlag.flag());
+        assertTrue(kyo.xYFlag.isLongRange());
         assertArrayEquals(KomaMove.CHECKLIST_kyo, kyo.koma);
 
         // 飛車
         KomaMove rook = KomaMove.movers.get(11);
         assertEquals(0, rook.xYFlag.x());
         assertEquals(1, rook.xYFlag.y(0));
-        assertTrue(rook.xYFlag.flag());
+        assertTrue(rook.xYFlag.isLongRange());
         assertArrayEquals(KomaMove.CHECKLIST_rook, rook.koma);
 
         // 角
         KomaMove kaku = KomaMove.movers.get(14);
         assertEquals(1, kaku.xYFlag.x());
         assertEquals(-1, kaku.xYFlag.y(0));
-        assertTrue(kaku.xYFlag.flag());
+        assertTrue(kaku.xYFlag.isLongRange());
         assertArrayEquals(KomaMove.CHECKLIST_kaku, kaku.koma);
     }
 
@@ -108,8 +108,11 @@ public class KomaMoveTest {
     @Test
     public void testCheckListArrays() {
         assertArrayEquals(
-                new int[]{ pG, pS, ppS, ppL, ppN, ppP, ppR, pK },
-                KomaMove.CHECKLIST_up
+                KomaMove.CHECKLIST_up,
+                new int[] {
+                        pG, pS, Table.addNariKoma(pS), Table.addNariKoma(pL),
+                        Table.addNariKoma(pN), Table.addNariKoma(pP), Table.addNariKoma(pR),
+                        pK }
         );
 
         assertArrayEquals(

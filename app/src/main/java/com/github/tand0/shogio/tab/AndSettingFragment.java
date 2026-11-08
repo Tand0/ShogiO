@@ -152,7 +152,7 @@ public class AndSettingFragment extends Fragment {
                             manager.explorer().maxTableFactory(maxTableFactory);
                             manager.explorer().maxNoChange(maxNoChange);
                             manager.explorer().maxLevel(maxLevel);
-                            manager.explorer().minSon(minSon);
+                            manager.explorer().maxSon(minSon);
                         }
                     });
         } catch(InterruptedException e) {
@@ -190,18 +190,6 @@ public class AndSettingFragment extends Fragment {
                         String ip = this.getResources().getString(R.string.ip_10_0_2_2);
                         this.settingIp.setText(ip);
                         this.settingGameName.setText(GAME_NAME_DEFAULT);
-                    }
-                    break;
-                case "ip_gserver_denryu_sen_jp":
-                    if (this.settingIp != null) {
-                        String ip = this.getResources().getString(R.string.ip_gserver_denryu_sen_jp);
-                        this.settingIp.setText(ip);
-                    }
-                    break;
-                case "ip_wgserver_computer_shogi_org":
-                    if (this.settingIp != null) {
-                        String ip = this.getResources().getString(R.string.ip_wgserver_computer_shogi_org);
-                        this.settingIp.setText(ip);
                     }
                     break;
                 case "ip_wdoor_c_u_tokyo_ac_jp":

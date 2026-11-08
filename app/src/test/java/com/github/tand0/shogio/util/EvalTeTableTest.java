@@ -32,8 +32,8 @@ public class EvalTeTableTest {
         float late1 = 0.1f;
         float late2 = 0.2f;
         Table table1 = new Table(null, 0);
-        Table table2 = new Table(table1,TableDefine.changeTeStringToInt("+7776FU"));
-        table2 = new Table(table2,TableDefine.changeTeStringToInt("-3334FU"));
+        Table table2 = new Table(table1,Table.changeTeStringToInt("+7776FU"));
+        table2 = new Table(table2,Table.changeTeStringToInt("-3334FU"));
         //
         EvalTeTable eT11 = new EvalTeTable(table1, TableDefine.LOS, late1, 2, 1);
         EvalTeTable eT12 = new EvalTeTable(table1, TableDefine.LOS, late2, 2, 1);
@@ -51,8 +51,8 @@ public class EvalTeTableTest {
     @Test
     public void testDisplay() {
         Table table1 = new Table(null, 0);
-        EvalTeTable eT11 = new EvalTeTable(table1, TableDefine.LOS, 0.1f, 2, 3);
-        String string = eT11.display();
+        TeTable evalTeTable = (new EvalTeTable(table1, TableDefine.LOS, 0.1f, 2, 3));
+        String string = evalTeTable.display();
         Assert.assertNotNull(string);
         Assert.assertTrue(string.contains("10"));
         Assert.assertTrue(string.contains("2"));

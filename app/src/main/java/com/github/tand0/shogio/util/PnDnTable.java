@@ -1,16 +1,17 @@
 package com.github.tand0.shogio.util;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
 /** PnDn 値を保持する */
 public class PnDnTable extends TeTable {
 	/** Pn dn 値 */
-	private final int[] pndn = new int[2];
+	private final int[] pnDn = new int[2];
 
-	/** wait */
-	private List<PnDnTable> pnDnTableList = null;
+	/** 拡張フラグ */
+	public boolean expandFlag = false;
 
 	/**
 	 * コンストラクタ
@@ -19,8 +20,8 @@ public class PnDnTable extends TeTable {
 	 */
 	public PnDnTable(TeTable teTable, int wait) {
 		super(teTable.table,teTable.te);
-		this.pndn[0] = wait; // 重みづけ
-		this.pndn[1] = wait; // 重みづけ
+		this.pnDn[0] = wait; // 重みづけ
+		this.pnDn[1] = wait; // 重みづけ
 	}
 
 	/** Pn の取得。
@@ -30,7 +31,7 @@ public class PnDnTable extends TeTable {
 	 * @return Pn
 	 */
 	public int getPn(int or) {
-		return this.pndn[or];
+		return this.pnDn[or];
 	}
 
 	/**
@@ -41,7 +42,7 @@ public class PnDnTable extends TeTable {
 	 * @return Dn
 	 */
 	public int getDn(int or) {
-		return this.pndn[1 - or];
+		return this.pnDn[1 - or];
 	}
 
 	/**
@@ -52,7 +53,7 @@ public class PnDnTable extends TeTable {
 	 * @param pn Pn
 	 */
 	public void setPn(int or, int pn) {
-		this.pndn[or] = pn;
+		this.pnDn[or] = pn;
 	}
 
 	/**
@@ -63,7 +64,7 @@ public class PnDnTable extends TeTable {
 	 * @param dn Dn
 	 */
 	public void setDn(int or, int dn) {
-		this.pndn[1 - or] = dn;
+		this.pnDn[1 - or] = dn;
 	}
 
 	/**
@@ -71,93 +72,24 @@ public class PnDnTable extends TeTable {
 	 * @return True: 展開されている, False: 展開されていない
 	 */
 	public boolean isExpand() {
-		return pnDnTableList != null;
+		return expandFlag;
+		//return pnDnTableList != null;
 	}
 
 	/**
-	 * テーブルリストを追加する
-	 * @param pnDnTableList テーブルリスト
+	 * 開いたことを示す
 	 */
-	public void setList(List<PnDnTable> pnDnTableList) {
-		this.pnDnTableList = pnDnTableList;
-	}
-
-	/**
-	 * リストの最初のテーブルを取得する
-	 * @return テーブル
-	 */
-	public PnDnTable getFirstList() {
-		if (! isExpand()) {
-			return null;
-		}
-		return this.pnDnTableList.getFirst();
-	}
-
-	/**
-	 * リストから最も小さい Pn を取得する
-	 * @param or  0: Or ノード、1: And ノード
-	 * @return 最も小さい Pn
-	 */
-	public PnDnTable getMinPnList(int or) {
-		if (! isExpand()) {
-			return null;
-		}
-		PnDnTable best = null;
-		int bestValue = Integer.MAX_VALUE;
-
-		for (PnDnTable x : this.pnDnTableList) {
-			int value = x.getPn(or);
-			if (value < bestValue) {
-				bestValue = value;
-				best = x;
-				if (bestValue == 0) {
-					break; // or条件:自局が勝ち(詰ませている), and条件:不詰み
-				}
-			}
-		}
-		return best;
-	}
-
-	/**
-	 * リストから Dn 値がゼロになるテーブルを削除する
-	 * @param or  0: Or ノード、1: And ノード
-	 */
-	public void removeDnZeroList(int or) {
-		if (! isExpand()) {
-			return;
-		}
-		this.pnDnTableList.removeIf(obj -> obj.getDn(or) == 0);
-	}
-
-	/**
-	 * リストをクリアする
-	 */
-	public void clearList() {
-		if (isExpand()) {
-			this.pnDnTableList.clear();
-		}
-		this.pnDnTableList = null;
-	}
-
-	/** 一つを除きテーブルをクリアする
-	 * @param target テーブル
-	 */
-	public void clearList(PnDnTable target) {
-		if (isExpand()) {
-			this.pnDnTableList.clear();
-		} else {
-			this.pnDnTableList = new ArrayList<>();
-		}
-		this.pnDnTableList.add(target);
+	public void setExpand() {
+		expandFlag = true;
 	}
 
 	/**
 	 * 最小の Pn を設定する
 	 * @param or  0: Or ノード、1: And ノード
 	 */
-	public void setPnMin(int or) {
+	public void setPnMin(List<PnDnTable> pnDnTableList, int or) {
 		int minValue = Integer.MAX_VALUE;
-		for (PnDnTable x : this.pnDnTableList) {
+		for (PnDnTable x : pnDnTableList) {
 			int value = x.getPn(or);
 			if (value < minValue) {
 				minValue = value;
@@ -173,9 +105,9 @@ public class PnDnTable extends TeTable {
 	 * 最大の Dn を設定する
 	 * @param or  0: Or ノード、1: And ノード
 	 */
-	public void setDnSum(int or) {
+	public void setDnSum(List<PnDnTable> pnDnTableList, int or) {
 		int sum = 0;
-		for (PnDnTable x : this.pnDnTableList) {
+		for (PnDnTable x : pnDnTableList) {
 			int dn = x.getDn(or);
 			if (dn == Integer.MAX_VALUE) {
 				sum = Integer.MAX_VALUE;
@@ -199,6 +131,6 @@ public class PnDnTable extends TeTable {
 	public String display() {
 		return super.display() +
 				String.format(Locale.getDefault(),
-						" pn[0]:%d dn[1]:%d", pndn[0], pndn[1]);
+						" pn[0]:%d dn[1]:%d", pnDn[0], pnDn[1]);
 	}
 }

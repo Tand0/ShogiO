@@ -10,7 +10,7 @@ public class PnDnTableTest {
     @Test
     public void testEquals() {
         Table t1 = new Table(null, 0);
-        Table t2 = new Table(t1,TableDefine.changeTeStringToInt("+7776FU"));
+        Table t2 = new Table(t1,Table.changeTeStringToInt("+7776FU"));
         TeTable teTable1a = new TeTable(t1, TableDefine.LOS);
         TeTable teTable1b = new TeTable(t1, TableDefine.LOS);
         TeTable teTable2 = new TeTable(t2, TableDefine.LOS);

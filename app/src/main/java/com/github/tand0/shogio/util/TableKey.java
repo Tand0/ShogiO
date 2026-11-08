@@ -65,7 +65,7 @@ public class TableKey implements Comparable<TableKey> {
 
     /** 局面上の処理
      * 駒 数 Hafuman   持成 必要
-     * 先  1 ------ -  - -  1 myTurn (0=先手,1=後手)
+     * 先  1 ------ -  - -  1 mySide (0=先手,1=後手)
      * 王  2 ------ -  - - 13 pK
      * 空 41 0XXXXX 1  - - 41 pNull
      * 歩 18 10XXXX 2  1 1 72 pP
@@ -85,12 +85,14 @@ public class TableKey implements Comparable<TableKey> {
         final Pointer p = new Pointer();
         //
         // 王角飛の位置を決める
-        int ou0 = (table.getSenteOuX() * 9) + table.getSenteOuY();
-        int ou1 = (table.getGoteOuX()  * 9) + table.getGoteOuY();
+        int ou0 = table.getMyOu(0);
+        int ou1 = table.getMyOu(1);
         //
-        setData(p, 1, table.getTeban()); // 手番
+        setData(p, 1, table.getSide()); // 手番
         //
-        setData(p, 1, table.isMyOute() ? 1 : 0); // 王手が掛かっているか？
+        // 王手が掛かっているか？(table.isMyOute() は重いので消した)
+        setData(p, 1,  0);
+        //
         setData(p, 13, (ou0 * 82L) + ou1); // 王の位置
         //
         setData(p, NARI_BIT_BASE, 0L); // 成りのコマか？bitを飛ばす
@@ -103,15 +105,15 @@ public class TableKey implements Comparable<TableKey> {
                 // 一つでも超過があったらそれはおかしいので終了
                 p.checkSum();
                 //
-                int koma = table.getKoma(x, y);
-                int komaOnly = 0xF & koma;
+                byte koma = table.getKoma(x, y);
+                int komaOnly = Table.getKomaOnly(koma);
                 if (komaOnly == TableDefine.pK) {
                     p.pKSum++;
                     continue;
                 }
                 //
-                int komaEnemy = (koma & TableDefine.ENEMY) == 0 ? 0 : 1;
-                int komaNari  = (koma & TableDefine.NARI) == 0 ? 0 : 1;
+                int komaSide = Table.isSideKoma(koma);
+                int komaNari  = Table.isNariKoma(koma) ? 1 : 0;
                 if (komaOnly == TableDefine.pNull) {
                     setData(p,1,0);
                     continue;
@@ -121,94 +123,94 @@ public class TableKey implements Comparable<TableKey> {
                 switch (komaOnly) {
                 case TableDefine.pP:
                     setData(p, 1, 0b0);
-                    setKomaEnemyBit(komaOnly,komaEnemy,p.pPSum);
+                    setKomaEnemyBit(komaOnly,komaSide,p.pPSum);
                     setKomaNariBit( komaOnly,komaNari ,p.pPSum);
                     p.pPSum++;
                     break;
                 case TableDefine.pL:
                     setData(p, 3, 0b100);
-                    setKomaEnemyBit(komaOnly,komaEnemy,p.pLSum);
+                    setKomaEnemyBit(komaOnly,komaSide,p.pLSum);
                     setKomaNariBit( komaOnly,komaNari ,p.pLSum);
                     p.pLSum++;
                     break;
                 case TableDefine.pN:
                     setData(p, 3, 0b101);
-                    setKomaEnemyBit(komaOnly,komaEnemy,p.pNSum);
+                    setKomaEnemyBit(komaOnly,komaSide,p.pNSum);
                     setKomaNariBit( komaOnly,komaNari ,p.pNSum);
                     p.pNSum++;
                     break;
                 case TableDefine.pS:
                     setData(p, 3, 0b110);
-                    setKomaEnemyBit(komaOnly,komaEnemy,p.pSSum);
+                    setKomaEnemyBit(komaOnly,komaSide,p.pSSum);
                     setKomaNariBit( komaOnly,komaNari ,p.pSSum);
                     p.pSSum++;
                     break;
                 case TableDefine.pG:
                     setData(p, 4, 0b1110);
-                    setKomaEnemyBit(komaOnly,komaEnemy,p.pGSum);
+                    setKomaEnemyBit(komaOnly,komaSide,p.pGSum);
                     //金は成れません
                     p.pGSum++;
                     break;
                 case TableDefine.pR:
                     setData(p, 5, 0b11110);
-                    setKomaEnemyBit(komaOnly,komaEnemy,p.pRSum);
+                    setKomaEnemyBit(komaOnly,komaSide,p.pRSum);
                     setKomaNariBit( komaOnly,komaNari ,p.pRSum);
                     p.pRSum++;
                     break;
                 case TableDefine.pB:
                 default:
                     setData(p, 5, 0b11111);
-                    setKomaEnemyBit(komaOnly,komaEnemy,p.pBSum);
+                    setKomaEnemyBit(komaOnly,komaSide,p.pBSum);
                     setKomaNariBit( komaOnly,komaNari ,p.pBSum);
                     p.pBSum++;
                     break;
                 }
             }
         }
-        for (int myTurn = 0 ; myTurn < 2 ; myTurn++) { // 手番処理
+        for (int mySide = 0 ; mySide < 2 ; mySide++) { // 手番処理
             if (p.okSum()) {
                 break; // すべてのコマが揃ったらループ不要
             }
-            long sum = table.getTegoma(TableDefine.pP, myTurn);
+            long sum = table.getTegoma(TableDefine.pP, mySide);
             for (int i = 0; i < sum ; i++) {
                 setData(p, 1, 0b0);
-                setKomaEnemyBit(TableDefine.pP, myTurn, p.pPSum);
+                setKomaEnemyBit(TableDefine.pP, mySide, p.pPSum);
                 p.pPSum++;
             }
-            sum = table.getTegoma(TableDefine.pL, myTurn);
+            sum = table.getTegoma(TableDefine.pL, mySide);
             for (int i = 0; i < sum ; i++) {
                 setData(p, 3, 0b100);
-                setKomaEnemyBit(TableDefine.pL, myTurn, p.pLSum);
+                setKomaEnemyBit(TableDefine.pL, mySide, p.pLSum);
                 p.pLSum++;
             }
-            sum = table.getTegoma(TableDefine.pN, myTurn);
+            sum = table.getTegoma(TableDefine.pN, mySide);
             for (int i = 0; i < sum ; i++) {
                 setData(p, 3, 0b101);
-                setKomaEnemyBit(TableDefine.pN, myTurn, p.pNSum);
+                setKomaEnemyBit(TableDefine.pN, mySide, p.pNSum);
                 p.pNSum++;
             }
-            sum = table.getTegoma(TableDefine.pS, myTurn);
+            sum = table.getTegoma(TableDefine.pS, mySide);
             for (int i = 0; i < sum ; i++) {
                 setData(p, 3, 0b110);
-                setKomaEnemyBit(TableDefine.pS, myTurn, p.pSSum);
+                setKomaEnemyBit(TableDefine.pS, mySide, p.pSSum);
                 p.pSSum++;
             }
-            sum = table.getTegoma(TableDefine.pG, myTurn);
+            sum = table.getTegoma(TableDefine.pG, mySide);
             for (int i = 0; i < sum ; i++) {
                 setData(p, 4, 0b1110);
-                setKomaEnemyBit(TableDefine.pG, myTurn, p.pGSum);
+                setKomaEnemyBit(TableDefine.pG, mySide, p.pGSum);
                 p.pGSum++;
             }
-            sum = table.getTegoma(TableDefine.pR, myTurn);
+            sum = table.getTegoma(TableDefine.pR, mySide);
             for (int i = 0; i < sum ; i++) {
                 setData(p, 5, 0b11110);
-                setKomaEnemyBit(TableDefine.pR, myTurn, p.pRSum);
+                setKomaEnemyBit(TableDefine.pR, mySide, p.pRSum);
                 p.pRSum++;
             }
-            sum = table.getTegoma(TableDefine.pB, myTurn);
+            sum = table.getTegoma(TableDefine.pB, mySide);
             for (int i = 0; i < sum ; i++) {
                 setData(p, 5, 0b11111);
-                setKomaEnemyBit(TableDefine.pB, myTurn, p.pBSum);
+                setKomaEnemyBit(TableDefine.pB, mySide, p.pBSum);
                 p.pBSum++;
             }
         }
@@ -249,17 +251,17 @@ public class TableKey implements Comparable<TableKey> {
      * @param sum コマの種類の中で何枚目のコマか？
      * @return 先手0,後手0x20
      */
-    public byte getKomaEnemyBit(int komaOnly, int sum) {
-        return (getBit(1 + 7 + 7 + SENTE_BIT_POS[komaOnly] + sum) != 0) ? TableDefine.ENEMY : 0;
+    public int getKomaSide(int komaOnly, int sum) {
+        return (getBit(1 + 7 + 7 + SENTE_BIT_POS[komaOnly] + sum) != 0) ? 1 : 0;
     }
     /**
      * 成りbitが立っているか取得する
      * @param komaOnly コマの種類
      * @param sum コマの種類の中で何枚目のコマか？
-     * @return 先手0,後手0x10
+     * @return true: 成り, false: 成っていない
      */
-    public byte getKomaNariBit(int komaOnly, int sum) {
-        return (getBit(1 + 7 + 7 + SENTE_BIT_POS[komaOnly] + sum + NARI_BIT_BASE) != 0) ? TableDefine.NARI : 0;
+    public boolean getKomaNariBit(int komaOnly, int sum) {
+        return getBit(1 + 7 + 7 + SENTE_BIT_POS[komaOnly] + sum + NARI_BIT_BASE) != 0;
     }
 
 
@@ -277,7 +279,8 @@ public class TableKey implements Comparable<TableKey> {
     @Override
     public boolean equals(Object o) {
         if (o instanceof TableKey target) {
-            return (key[0] == target.key[0]) &&
+            // 第2bitは使わないことにしたので無視する
+            return ((key[0] & 0xBFFFFFFFFFFFFFFFL) == (target.key[0] & 0xBFFFFFFFFFFFFFFFL)) &&
                     (key[1] == target.key[1]) &&
                     (key[2] == target.key[2]) &&
                     (key[3] == target.key[3]);
@@ -309,7 +312,7 @@ public class TableKey implements Comparable<TableKey> {
         Pointer p = new Pointer();
         //
         // 手番を設定する
-        table.setTeban((int)getData(p,1));
+        table.setSide((int)getData(p,1));
         //
         // 王角飛車の設定の取得
         //
@@ -318,8 +321,8 @@ public class TableKey implements Comparable<TableKey> {
         long sum = getData(p, 13);
         long ou1 = sum % (9*9 + 1);
         long ou0 = sum / (9*9 + 1);
-        table.setKoma(TableDefine.pK, (int)ou0/9, (int)ou0%9);
-        table.setKoma(TableDefine.pk, (int)ou1/9, (int)ou1%9);
+        table.setKoma(TableDefine.pK, (int)ou0%9, (int)ou0/9);
+        table.setKoma(TableDefine.pk, (int)ou1%9, (int)ou1/9);
         //
         getData(p, NARI_BIT_BASE);     // どとらのコマか？bitを飛ばす
         getData(p, NARI_BIT_BASE - 4); // 成りコマbitを飛ばす(金は成らない)
@@ -331,7 +334,7 @@ public class TableKey implements Comparable<TableKey> {
                 // 超過チェック
                 p.checkSum();
                 //
-                if ( ((x == ou0/9) && (y == ou0%9)) ||  ((x == ou1/9) && (y == ou1%9)) ) {
+                if ( ((x == ou0%9) && (y == ou0/9)) ||  ((x == ou1%9) && (y == ou1/9)) ) {
                     p.pKSum++;
                     continue; // すでにコマが置かれている
                 }
@@ -345,55 +348,55 @@ public class TableKey implements Comparable<TableKey> {
                 // 中身のデータ
                 check = getData(p,1);
                 byte koma;
-                long enemy;
-                long nari = 0;
+                int side;
+                boolean nari = false;
                 if (check == 0) { // 00XXX
                     // 歩である
                     koma = TableDefine.pP;
-                    enemy = getKomaEnemyBit(koma,p.pPSum);
+                    side = getKomaSide(koma,p.pPSum);
                     nari = getKomaNariBit(koma,p.pPSum);
                     p.pPSum++;
                 } else { // 1XXXX
                     check = getData(p,2);
                     if (check == 0b0) {
                         koma = TableDefine.pL;
-                        enemy = getKomaEnemyBit(koma,p.pLSum);
+                        side = getKomaSide(koma,p.pLSum);
                         nari = getKomaNariBit(koma,p.pLSum);
                         p.pLSum++;
                     } else if (check == 0b1) {
                         koma = TableDefine.pN;
-                        enemy = getKomaEnemyBit(koma,p.pNSum);
+                        side = getKomaSide(koma,p.pNSum);
                         nari = getKomaNariBit(koma,p.pNSum);
                         p.pNSum++;
                     } else if (check == 0b10) {
                         koma = TableDefine.pS;
-                        enemy = getKomaEnemyBit(koma,p.pSSum);
+                        side = getKomaSide(koma,p.pSSum);
                         nari = getKomaNariBit(koma,p.pSSum);
                         p.pSSum++;
                     } else { // 0b11
                         check = getData(p,1);
                         if (check == 0) {
                             koma = TableDefine.pG;
-                            enemy = getKomaEnemyBit(koma,p.pGSum);
+                            side = getKomaSide(koma,p.pGSum);
                             p.pGSum++;
                             // 金に成りはない
                         } else {
                             check = getData(p,1);
                             if (check == 0) {
                                 koma = TableDefine.pR;
-                                enemy = getKomaEnemyBit(koma,p.pRSum);
+                                side = getKomaSide(koma,p.pRSum);
                                 nari = getKomaNariBit(koma,p.pRSum);
                                 p.pRSum++;
                             } else {
                                 koma = TableDefine.pB;
-                                enemy = getKomaEnemyBit(koma,p.pBSum);
+                                side = getKomaSide(koma,p.pBSum);
                                 nari = getKomaNariBit(koma,p.pBSum);
                                 p.pBSum++;
                             }
                         }
                     }
                 }
-                koma = (byte) (enemy | nari | koma);
+                koma = Table.addSideKoma(Table.addNariKoma(koma, nari? 1 : 0), side);
                 table.setKoma(koma, x, y);
             }
         }
@@ -405,12 +408,12 @@ public class TableKey implements Comparable<TableKey> {
             p.checkSum();
             //
             byte koma;
-            int enemy;
+            int side;
             long check = peakData(p,1);
             if (check == 0b0) { //0b0
                 getData(p,1);
                 koma = TableDefine.pP;
-                enemy = getKomaEnemyBit(koma,p.pPSum);
+                side = getKomaSide(koma,p.pPSum);
                 p.pPSum++;// 歩である
                 p.checkSum();
             } else { // 0b1
@@ -418,19 +421,19 @@ public class TableKey implements Comparable<TableKey> {
                 if (check == 0b100) {
                     getData(p,3);
                     koma = TableDefine.pL;
-                    enemy = getKomaEnemyBit(koma,p.pLSum);
+                    side = getKomaSide(koma,p.pLSum);
                     p.pLSum++;
                     p.checkSum();
                 } else if (check == 0b101) {
                     getData(p,3);
                     koma = TableDefine.pN;                     
-                    enemy = getKomaEnemyBit(koma,p.pNSum);
+                    side = getKomaSide(koma,p.pNSum);
                     p.pNSum++;
                     p.checkSum();
                 } else if (check == 0b110) {
                     getData(p,3);
                     koma = TableDefine.pS;                     
-                    enemy = getKomaEnemyBit(koma,p.pSSum);
+                    side = getKomaSide(koma,p.pSSum);
                     p.pSSum++;
                     p.checkSum();
                 } else { //0b111
@@ -438,7 +441,7 @@ public class TableKey implements Comparable<TableKey> {
                     if (check == 0b1110) {
                         getData(p,4);
                         koma = TableDefine.pG;
-                        enemy = getKomaEnemyBit(koma,p.pGSum);
+                        side = getKomaSide(koma,p.pGSum);
                         p.pGSum++;
                         p.checkSum();
                     } else { // 0b1111
@@ -446,12 +449,12 @@ public class TableKey implements Comparable<TableKey> {
                         getData(p,5);
                         if (check == 0b11110) {
                             koma = TableDefine.pR;
-                            enemy = getKomaEnemyBit(koma,p.pRSum);
+                            side = getKomaSide(koma,p.pRSum);
                             p.pRSum++;
                             p.checkSum();
                         } else { // 0b11111
                             koma = TableDefine.pB;
-                            enemy = getKomaEnemyBit(koma,p.pBSum);
+                            side = getKomaSide(koma,p.pBSum);
                             p.pBSum++;
                             p.checkSum();
                         }
@@ -459,8 +462,8 @@ public class TableKey implements Comparable<TableKey> {
                 }
             }
             // enemyはTableDefine.ENEMYが入っているので、先手0,後手1にする
-            enemy = (enemy == 0) ? 0 : 1;
-            table.setTegoma(koma, enemy,table.getTegoma(koma, enemy) + 1);
+            int num = table.getTegoma(koma, side);
+            table.setTegoma(koma, side, num + 1);
         }
         //
         return table;
@@ -469,7 +472,7 @@ public class TableKey implements Comparable<TableKey> {
     /** 手番を習得する。
      * @return 手番。 0:先手、1:後手
      */
-    public int getTeban() {
+    public int getSide() {
         // 先頭ビットに手番情報が入っているので取れる
         return (key[0] & 0x8000000000000000L) == 0 ? 0 : 1;
     }

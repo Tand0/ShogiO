@@ -22,7 +22,7 @@ public class MainDatabaseImpl implements MainDatabase, AutoCloseable {
     public MainDatabaseImpl(String url) {
         try {
             connSecondSelect = DriverManager.getConnection(url);
-            String selectSql = "SELECT win,los FROM mytable " +
+            final String selectSql = "SELECT win,los FROM mytable " +
                     "WHERE key1=? and key2=? and key3=? and key4=?;";
             preparedStatement = connSecondSelect.prepareStatement(selectSql);
         } catch(SQLException e) {

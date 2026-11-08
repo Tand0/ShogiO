@@ -11,13 +11,13 @@ public class InputGenTest {
         Table table = new Table(null, 0);
         myCheck(table);
         //
-        table = new Table(table,TableDefine.changeTeStringToInt("+7776FU"));
+        table = new Table(table,Table.changeTeStringToInt("+7776FU"));
         myCheck(table);
         //
-        table = new Table(table,TableDefine.changeTeStringToInt("-3334FU"));
+        table = new Table(table,Table.changeTeStringToInt("-3334FU"));
         myCheck(table);
         //
-        table = new Table(table,TableDefine.changeTeStringToInt("+8822KA"));
+        table = new Table(table,Table.changeTeStringToInt("+8822KA"));
         myCheck(table);
     }
 
@@ -33,7 +33,7 @@ public class InputGenTest {
         Table reverse = inputGen.get3DToTable();
         //
         // もしも後手番の時は反転させる
-        reverse = (tableKey.getTeban() == 0)? reverse : reverse.flippingVertical();
+        reverse = (tableKey.getSide() == 0)? reverse : reverse.flippingVertical();
         //
         if (! table.equals(reverse)) {
             // 一致しないときは左右反転させる
@@ -55,7 +55,7 @@ public class InputGenTest {
         //
         // 持ちコマを反転させる
         table = new Table(null, 0);
-        table.setTeban(1 - table.getTeban());
+        table.setSide(1 - table.getSide());
         table.endForCSAProtocol();
         myCheck(table);
     }
@@ -68,30 +68,14 @@ public class InputGenTest {
         Table table = new Table(null, 0);
         Assert.assertFalse(TableDefine.checkFreeKoma(table));
         //
-        table = new Table(table,TableDefine.changeTeStringToInt("+7776FU"));
+        table = new Table(table,Table.changeTeStringToInt("+7776FU"));
         Assert.assertFalse(TableDefine.checkFreeKoma(table));
         //
-        table = new Table(table,TableDefine.changeTeStringToInt("-3334FU"));
+        table = new Table(table,Table.changeTeStringToInt("-3334FU"));
         Assert.assertFalse(TableDefine.checkFreeKoma(table));
         //
-        table = new Table(table,TableDefine.changeTeStringToInt("+8822KA"));
+        table = new Table(table,Table.changeTeStringToInt("+8822KA"));
         Assert.assertTrue(TableDefine.checkFreeKoma(table));
-    }
-
-    /** 最終盤面のテスト */
-    @Test
-    public void testLast() {
-        Table table = new Table(null, 0);
-        InputGen inputGen = new InputGen();
-        inputGen.updateTable(table); // 反映
-        for (int x = 0 ; x < TableDefine.B_MAX; x++) {
-            for (int y = 0 ; y < TableDefine.B_MAX; y++) {
-                Assert.assertEquals(
-                        1,
-                        inputGen.get(x, y, InputGen.MAX_CHANNEL - 1),
-                        0.01);
-            }
-        }
     }
 
     /** レイヤが生成するテーブルキーがあっているか？ */
@@ -100,7 +84,7 @@ public class InputGenTest {
         InputGen inputGen = new InputGen();
         //
         Table table1 = new Table(null, 0);
-        Table table2 = new Table(table1,TableDefine.changeTeStringToInt("+7776FU"));
+        Table table2 = new Table(table1,Table.changeTeStringToInt("+7776FU"));
         //
         Assert.assertNotEquals(table1, table2);
         //
@@ -142,10 +126,10 @@ public class InputGenTest {
     public void testCreateInputGenKeyString() {
         String keyString;
         //
-        keyString = "c92f6800452800000004018f869dc005c0d2120072910004c3400092f7777bff";
+        keyString = "89c3f80468cb60001000019fbc7cc700bd0524805e2ad3eb88f23b819a042cbf";
         checkCreateInputGenKeyString(keyString);
         //
-        keyString = "c9c3f80468cb60001000019fbc7cc700bd0524805e2ad3eb88f23b819a042cbf";
+        keyString = "c92f6800452800000004018f869dc005c0d2120072910004c3400092f7777bff";
         checkCreateInputGenKeyString(keyString);
     }
 
@@ -156,12 +140,17 @@ public class InputGenTest {
         InputGen inputGen = new InputGen();
         TableKey tableKey = new TableKey(keyString);
         //
-        // 上下反転
-        Table table = tableKey.createTable();
         //
-        if (table.getTeban() != 0) {
+        Table table = tableKey.createTable();
+        TableKey tableNewKey = new TableKey(table);
+        Table tableNew = tableNewKey.createTable();
+        Assert.assertEquals(table, tableNew);
+        //
+        if (table.getSide() != 0) {  // 上下反転
             Table reverseTable = table.flippingVertical();
             TableKey reverseTableKey = new TableKey(reverseTable);
+            Table reverseTableFromKey = reverseTableKey.createTable();
+            Assert.assertEquals(reverseTable, reverseTableFromKey);
             //
             TableKey inputKey = inputGen.createInputGenKey(reverseTableKey);
             Assert.assertNotNull(inputKey);

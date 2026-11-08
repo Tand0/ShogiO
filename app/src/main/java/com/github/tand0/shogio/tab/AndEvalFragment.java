@@ -1,12 +1,9 @@
 package com.github.tand0.shogio.tab;
 
-
 import androidx.lifecycle.LiveData;
-
 import com.github.tand0.shogio.MainViewModel;
 import com.github.tand0.shogio.R;
 import com.github.tand0.shogio.util.TeTable;
-
 import java.util.List;
 
 /** 指し手の一覧 (評価ディスプレイ用) */
@@ -16,6 +13,7 @@ public class AndEvalFragment extends AndTurnFragment {
     public AndEvalFragment() {
         this(R.layout.fragment_eval);
     }
+
     /** コンストラクタ
      * @param contentLayoutId content Layout Id
      */
@@ -38,7 +36,7 @@ public class AndEvalFragment extends AndTurnFragment {
      * @return 表示すべきリスト
      */
     @Override
-    public LiveData<List<TeTable>> getTeTableList(MainViewModel viewModel) {
+    public LiveData<List<? extends TeTable>> getTeTableList(MainViewModel viewModel) {
         return viewModel.getEvalTeTableList();
     }
 }

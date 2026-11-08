@@ -26,7 +26,7 @@ public class MainViewModel extends ViewModel {
     /**
      * 学習結果の手テーブルのリスト
      */
-    private final MutableLiveData<List<TeTable>> evalTeTableList = new MutableLiveData<>();
+    private final MutableLiveData<List<? extends TeTable>> evalTeTableList = new MutableLiveData<>();
 
     /** キャンバス用の手テーブル */
     private final MutableLiveData<TeTable> canvasTeTable = new MutableLiveData<>();
@@ -34,7 +34,7 @@ public class MainViewModel extends ViewModel {
     /**
      * 手テーブルのリスト
      */
-    private final MutableLiveData<List<TeTable>> teTableList = new MutableLiveData<>();
+    private final MutableLiveData<List<? extends TeTable>> teTableList = new MutableLiveData<>();
 
     /** ステータス */
     private SendListener status;
@@ -83,7 +83,7 @@ public class MainViewModel extends ViewModel {
     /** 学習結果の手テーブルのリストの取得
      * @return 手テーブルのリスト
      */
-    public LiveData<List<TeTable>> getEvalTeTableList() {
+    public LiveData<List<? extends TeTable>> getEvalTeTableList() {
         return this.evalTeTableList;
     }
 
@@ -98,7 +98,7 @@ public class MainViewModel extends ViewModel {
     /** 手テーブルのリストの取得
      * @return 手テーブルの知ると
      */
-    public LiveData<List<TeTable>> getTeTableList() {
+    public LiveData<List<? extends TeTable>> getTeTableList() {
         return this.teTableList;
     }
 
@@ -114,7 +114,7 @@ public class MainViewModel extends ViewModel {
      *
      * @param teTableList 手テーブルのリスト
      */
-    public void updateEvalTeTableList(List<TeTable> teTableList) {
+    public void updateEvalTeTableList(List<? extends TeTable> teTableList) {
         this.evalTeTableList.postValue(teTableList);
     }
 

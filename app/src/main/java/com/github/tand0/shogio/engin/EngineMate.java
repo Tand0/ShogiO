@@ -54,7 +54,7 @@ public class EngineMate extends Engine {
             int or = 0;
             float eval;
             if (target.getPn(or) == 0) {
-                eval = (lastTable.table.getTeban() == 0) ? 1.0f : 0.0f;
+                eval = (lastTable.table.getSide() == 0) ? 1.0f : 0.0f;
             } else {
                 eval = 0.5f;
             }
@@ -68,7 +68,7 @@ public class EngineMate extends Engine {
     private final EngineMateImpl emi = new EngineMateImpl() {
         @Override
         public boolean isEnd() {
-            return EngineMate.this.isEnd();
+            return EngineMate.this.isInterruptOrTimeout();
         }
     };
 }

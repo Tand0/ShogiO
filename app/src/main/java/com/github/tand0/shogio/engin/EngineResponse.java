@@ -19,6 +19,6 @@ import java.util.List;
  */
 public record EngineResponse(
         int turn, int te, Class<?> cls,
-        List<TeTable> displayList, float eval) {
+        List<? extends TeTable> displayList, float eval) {
 
 }

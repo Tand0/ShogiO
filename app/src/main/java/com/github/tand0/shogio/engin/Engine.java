@@ -23,6 +23,12 @@ public abstract class Engine implements Runnable, SendListener {
      */
     public abstract String getEngineId();
 
+    /** ターゲット時間。
+     * 0の場合は無視する。
+     * 1以上の場合はこの時間を過ぎたら isEnd を true にする
+     */
+    private long targetTime = 0;
+
     /** コンストラクタ */
     public Engine() {
     }
@@ -40,13 +46,22 @@ public abstract class Engine implements Runnable, SendListener {
             try {
                 // キューが空ならデータが入るまで待機する
                 Object data = this.queue.take();
+                if (! this.queueIsEmpty()) {
+                    // キューが isEmpty になるまで読む
+                    data = this.queue.take();
+                }
                 if (data instanceof EngineRequest r) {
+                    this.targetTime = r.targetTime();
                     //
                     fail(r); // あらかじめ失敗を入れておく
                     //
                     createNow(r); // 合法手から１手指させる
                     //
-                    r.forResult().send(this.getNow()); // 打ち返す
+                    if (this.queueIsEmpty()) {
+                        // キューに溜まってなければ打ち返す
+                        // 溜まっていたら次の処理をするので打ち返す必要なし
+                        r.forResult().send(this.getNow()); // 打ち返す
+                    }
                     //
                 } else if (data instanceof EngineStop) {
                     // 思考停止信号
@@ -82,13 +97,20 @@ public abstract class Engine implements Runnable, SendListener {
         queue.put(x);
     }
 
+    /** 学習を停止する
+     * @return true:キューがemptyでない
+     */
+    public final boolean queueIsEmpty() {
+        return this.queue.isEmpty();
+    }
 
     /** 学習を停止する
-     * 要するに、キューになんか来たら
-     * @return キューが空でないなら true
+     * 要するに、キューになんか来たら。または時間に到達したら。
+     * @return true:キューがemptyでない、または時間到達したら
      */
-    public final boolean isEnd() {
-        return ! this.queue.isEmpty();
+    public final boolean isInterruptOrTimeout() {
+        return (! queueIsEmpty())
+            || (0 < targetTime) && (System.currentTimeMillis() < targetTime);
     }
 
     /**

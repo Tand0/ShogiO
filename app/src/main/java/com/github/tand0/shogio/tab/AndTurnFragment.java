@@ -14,7 +14,6 @@ import androidx.lifecycle.ViewModelProvider;
 import com.github.tand0.shogio.MainActivity;
 import com.github.tand0.shogio.MainViewModel;
 import com.github.tand0.shogio.R;
-import com.github.tand0.shogio.engin.MessageConnectCloseRequest;
 import com.github.tand0.shogio.engin.SendListener;
 import com.github.tand0.shogio.util.TeTable;
 
@@ -24,6 +23,9 @@ import java.util.List;
 public class AndTurnFragment extends Fragment {
     /** 一覧用の view */
     private ListView listView;
+
+    /** アダプタ */
+    AndTurnAdapter adapter;
 
     /** コンストラクタ */
     public AndTurnFragment() {
@@ -50,7 +52,7 @@ public class AndTurnFragment extends Fragment {
      * @param viewModel view モデル
      * @return 表示すべきリスト
      */
-    public LiveData<List<TeTable>> getTeTableList(MainViewModel viewModel) {
+    public LiveData<List<? extends TeTable>> getTeTableList(MainViewModel viewModel) {
         return viewModel.getTeTableList();
     }
 
@@ -81,22 +83,10 @@ public class AndTurnFragment extends Fragment {
                 .observe(getViewLifecycleOwner(), this::updateTeTableList);
         //
         listView = view.findViewById(getFindViewById());
-        listView.setOnItemClickListener(
-                (parent, view1, position, id) -> {
-            //
-            TeTable teTable = (TeTable) parent.getItemAtPosition(position);
-            //
-            MainActivity act = (MainActivity)requireActivity();
-            SendListener forGui = act.getForGui();
-            //
-            try {
-                viewModel.getStatus().send(new MessageConnectCloseRequest());
-                forGui.send(teTable);
-                //
-            } catch (InterruptedException e) {
-                // EMPTY
-            }
-        });
+        Context context = requireContext();
+        adapter = new AndTurnAdapter(
+                context, R.layout.item_turn);
+        listView.setAdapter(adapter);
     }
 
     @Override
@@ -112,11 +102,11 @@ public class AndTurnFragment extends Fragment {
      *
      * @param teTableList 将棋サーバからの局面情報
      */
-    public void updateTeTableList(List<TeTable> teTableList) {
-        Context context = requireContext();
+    public void updateTeTableList(List<? extends TeTable> teTableList) {
+        MainActivity act = (MainActivity)requireActivity();
+        SendListener forGui = act.getForGui();
         //
         // 出力結果をリストビューに表示
-        AndTurnAdapter adapter = new AndTurnAdapter(context, R.layout.item_turn, teTableList);
-        listView.setAdapter(adapter);
+        adapter.update(teTableList, forGui, listView);
     }
 }

@@ -10,41 +10,54 @@ package com.github.tand0.shogio.util;
  * @param narenai     成れるコマか？ (金,王,以外)
  */
 public record Checklist(int forcedNari, int beatKinshi, boolean narazuOK, boolean narenai) {
-
+    /**
+     * 合法手チェック用
+     */
+    public static final Checklist[] CHECKLIST = {
+            new Checklist( 8,  0, false, true), //pNull 空白
+            new Checklist(+1, +1, false, false ), // pP 歩
+            new Checklist(+2, +1, true,  false ), // pL 香
+            new Checklist(+2, +2, true,  false ), // pN 桂
+            new Checklist( 0,  0, true,  false ), // pS 銀
+            new Checklist( 8,  0, false, true  ), // pG 金
+            new Checklist( 0,  0, false, false ), // pB 角
+            new Checklist( 0,  0, false, false ), // pR 飛
+            new Checklist( 8,  0, false, true  ),  //pK  王
+    };
     /**
      * 成りを強制する
      *
-     * @param teban 手番
+     * @param side 手番
      * @param y     位置
      * @return 成りを強制する必要がある場合はtrue
      */
-    public boolean getForcedNari(int teban, int y) {
-        return (teban == 0) ? (y < forcedNari) : ((8 - forcedNari) < y);
+    public boolean getForcedNari(int side, int y) {
+        return (side == 0) ? (y < forcedNari) : ((8 - forcedNari) < y);
     }
 
     /**
      * 敵陣ならばtrue
      *
-     * @param teban 手番
+     * @param side 手番 (0: 先手、1: 後手)
      * @param y     位置
      * @return 敵陣ならば true
      */
-    public boolean isTekijin(int teban, int y) {
-        return (teban == 0) ? (y <= 2) : (6 <= y);
+    public boolean isTekijin(int side, int y) {
+        return (side == 0) ? (y <= 2) : (6 <= y);
     }
 
     /**
      * 打ち込み禁止位置に打ち込んでいないか？
      *
-     * @param teban 手番
+     * @param side 手番 (0: 先手、1: 後手)
      * @param y     位置
      * @return 打ち込めないならtrue
      */
-    public boolean getUchiKinshi(int teban, int y) {
+    public boolean getUchiKinshi(int side, int y) {
         if (beatKinshi == 0) {
             return false; // 0ならどこでも打てる
         }
-        return (teban == 0) ? (y < beatKinshi) : ((8 - beatKinshi) < y);
+        return (side == 0) ? (y < beatKinshi) : ((8 - beatKinshi) < y);
     }
 
     /**

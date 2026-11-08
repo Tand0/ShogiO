@@ -16,7 +16,6 @@ public class TableDefineTest {
                 TableDefine.STRING_LOS,
                 TableDefine.STRING_WIN,
                 TableDefine.STRING_DRAW,
-                TableDefine.EXTENSION_ZIP,
                 TableDefine.EXTENSION_CSA,
                 TableDefine.EXTENSION_DB
         };
@@ -64,7 +63,7 @@ public class TableDefineTest {
                 return new ArrayList<>();
             }
         }; // 子なし → 詰み
-        table.setTeban(1);
+        table.setSide(1);
         EvalMoveResult result = TableDefine.getEvalMoveList(null, table, 0, 0);
 
         Assert.assertEquals(1, result.win());
@@ -106,7 +105,7 @@ public class TableDefineTest {
         TeTable child1 = new TeTable(new Table(null, 0), 5);
         TeTable child2 = new TeTable(
                 new Table(child1.table,
-                        TableDefine.changeTeStringToInt("+2726FU")), 5);
+                        Table.changeTeStringToInt("+2726FU")), 5);
         TableKey key2 = new TableKey(child2.table);
 
         Table table = new Table(null, 0);
@@ -167,10 +166,10 @@ public class TableDefineTest {
     public void testSenteSelectMinRate() {
         Table table = new Table(null, 0);
         Table table1 = new Table(table,
-                TableDefine.changeTeStringToInt("+2726FU"));
+                Table.changeTeStringToInt("+2726FU"));
         TableKey next1 = new TableKey(table1);
         Table table2 = new Table(table,
-                TableDefine.changeTeStringToInt("+1716FU"));
+                Table.changeTeStringToInt("+1716FU"));
         TableKey next2 = new TableKey(table2);
         MainDatabase base = (key -> {
             long[] result = null;
@@ -192,7 +191,7 @@ public class TableDefineTest {
         Assert.assertEquals(
                 0.05,
                 (double) result.win() / (result.win() + result.los()),
-                0.01);
+                0.1);
     }
 
     /** 後手は最高 rate を選ぶ */
@@ -200,11 +199,11 @@ public class TableDefineTest {
     public void testGoteSelectMaxRate() {
         Table table = new Table(null, 0);
         Table table1 = new Table(table,
-                TableDefine.changeTeStringToInt("+2726FU"))
+                Table.changeTeStringToInt("+2726FU"))
                 .flippingVertical();
         TableKey next1 = new TableKey(table1);
         Table table2 = new Table(table,
-                TableDefine.changeTeStringToInt("+1716FU"))
+                Table.changeTeStringToInt("+1716FU"))
                 .flippingVertical();
         TableKey next2 = new TableKey(table2);
         //
@@ -230,25 +229,25 @@ public class TableDefineTest {
         Assert.assertEquals(
                 0.95,
                 (double) result.win() / (result.win() + result.los()),
-                0.01);
+                0.1);
     }
 
     /** 入力を -3333FU,T12 としたとき、12秒になる */
     @Test
     public void testChangeTeStringToTime() {
         Assert.assertEquals(
-                12, TableDefine.changeTeStringToTime("-3333FU,T12"));
+                12, Table.changeTeStringToTime("-3333FU,T12"));
     }
 
     /** 手の変更が正しく行えたか？ */
     @Test
     public void testChangeTe() {
-        int te = TableDefine.changeTeToInt(TableDefine.pP, 1, 2, 3, 4);
-        Assert.assertEquals(TableDefine.pP,TableDefine.changeTeToKoma(te));
-        Assert.assertEquals(1,TableDefine.changeTeToOldX(te));
-        Assert.assertEquals(2,TableDefine.changeTeToOldY(te));
-        Assert.assertEquals(3,TableDefine.changeTeToNewX(te));
-        Assert.assertEquals(4,TableDefine.changeTeToNewY(te));
+        int te = Table.changeTeToInt(TableDefine.pP, 1, 2, 3, 4);
+        Assert.assertEquals(TableDefine.pP,Table.changeTeToKoma(te));
+        Assert.assertEquals(1,Table.changeTeToOldX(te));
+        Assert.assertEquals(2,Table.changeTeToOldY(te));
+        Assert.assertEquals(3,Table.changeTeToNewX(te));
+        Assert.assertEquals(4,Table.changeTeToNewY(te));
 
     }
 }

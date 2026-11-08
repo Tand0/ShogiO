@@ -1,15 +1,16 @@
 package com.github.tand0.shogio.engin;
 
-import com.github.tand0.shogio.util.ExplorerTable;
+import com.github.tand0.shogio.util.EvalTeTable;
 import com.github.tand0.shogio.util.TensoInterface;
 import com.github.tand0.shogio.util.Table;
 import com.github.tand0.shogio.util.TableDefine;
 import com.github.tand0.shogio.util.TeTable;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 /** 評価値用エンジン */
 public class EngineEval extends Engine {
@@ -18,7 +19,7 @@ public class EngineEval extends Engine {
     private final TensoInterface tensoInterface;
 
     /** ダメなテーブルのセット */
-    private final Set<TeTable> topOpBadTeableSet;
+    private final Set<Table> topOpBadTeableSet = new HashSet<>();
 
     /** engine 名を取得する
      * @return engine 名
@@ -36,63 +37,44 @@ public class EngineEval extends Engine {
     public EngineEval(TensoInterface tensoInterface, Set<TeTable> topOpBadTeableSet) {
         super();
         this.tensoInterface = tensoInterface;
-        this.topOpBadTeableSet = topOpBadTeableSet;
+        for (TeTable teTable : topOpBadTeableSet) {
+            this.topOpBadTeableSet.add(teTable.table);
+        }
     }
 
     @Override
     public void createNow(EngineRequest r) {
-        Table table = r.teTableList().getLast().table;
-        List<TeTable> nextTeTableList = table.createChild();
-        nextTeTableList.removeAll(topOpBadTeableSet); // 最悪手を削除する
-        Set<ExplorerTable> displayTeTableSet;
-        float eval;
-        if (r.display()) {
-            displayTeTableSet = new TreeSet<>();
-        } else {
-            displayTeTableSet = null;
+        Table first = r.teTableList().getLast().table;
+        //
+        //
+        List<EvalTeTable> displayList = first.createChild((table,y)-> {
+                float result = this.tensoInterface.runCompiledModel(table);
+                if (topOpBadTeableSet.contains(table)) {
+                    return null;  // すでに存在するので見ない
+                }
+                // tableが書き換わらないように cloneを取る
+                return new EvalTeTable(table.clone(), y, result, 0, 0);
+            }).stream() // streamを取る
+            .sorted()  // 評価値でソート
+            .collect(Collectors.toCollection(ArrayList::new)); // 後で追加できるリストを作る
+        if (displayList.isEmpty()) {  // 詰んだ
+            return;
         }
-        List<TeTable> displayTeTableList = null;
-        int te;
-        if (nextTeTableList.isEmpty()) {
-            te = TableDefine.LOS;
-            eval = (table.getTeban() == 0) ? 0 : 1.0f;
-        } else {
-            //
-            te = TableDefine.LOS; // 初期値
-            int myTurn = table.getTeban(); // 手番
-            eval = (myTurn == 0) ? Float.MIN_VALUE : Float.MAX_VALUE;
-            for (int i = 0 ; i < nextTeTableList.size() ; i++) {
-                TeTable teTable = nextTeTableList.get(i);
-                Float result = this.tensoInterface.runCompiledModel(teTable.table);
-                if (result == null) {
-                    continue; // 初期化が終わってない
-                }
-                if (myTurn == 0) { // 先手は数値が大きい方が良い
-                    if (eval <= result) {
-                        te = teTable.te;
-                        eval = result;
-                    }
-                } else { // 後手は数値が小さい方が良い
-                    if (result <= eval) {
-                        te = teTable.te;
-                        eval = result;
-                    }
-                }
-                if (r.display()) {
-                    ExplorerTable eTable = new ExplorerTable(teTable);
-                    eTable.setEval(result);
-                    displayTeTableSet.add(eTable);
-                }
-            }
+        if (TableDefine.checkWinTeTableList(displayList)) {  // 勝利した
+            return;
         }
+        //
+        // eval 値を決定する (先にisEmpty()チェックしているのでnullになることはない)
+        EvalTeTable target = displayList.getFirst();
         if (r.display()) {
             // 表示モードの時はこちら
-            displayTeTableList = new ArrayList<>(displayTeTableSet);
             // 先頭に前局面を乗せる
-            displayTeTableList.addFirst(new TeTable(table,TableDefine.LOS));
+            displayList.addFirst(new EvalTeTable(first,TableDefine.LOS,0,0));
+        } else {
+            displayList = null;
         }
         this.setNow(new EngineResponse(
-                r.turn(), te, EngineEval.class,
-                displayTeTableList, eval));
+                r.turn(), target.te, EngineEval.class,
+                displayList, target.eval));
     }
 }

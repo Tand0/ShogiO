@@ -17,8 +17,8 @@ android {
         applicationId = "com.github.tand0.shogio"
         minSdk = 35
         targetSdk = 37
-        versionCode = 3
-        versionName = "1.0.3"
+        versionCode = 5
+        versionName = "1.0.5"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

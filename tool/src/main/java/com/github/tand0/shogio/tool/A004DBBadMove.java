@@ -47,8 +47,8 @@ public class A004DBBadMove extends DBBase {
     public String getBorder() {
         int border;
         try {
-            // データが大きすぎるのでボーダーを x 倍にする
-            int x = 10;
+            // データが大すぎるのでボーダーを x 倍にする
+            int x = 200;
             border = MyPropertiesAccess.getInt(PropertyDefine.APP_BORDER) * x;
         } catch (IOException e) {
             throw new RuntimeException(e);

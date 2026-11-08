@@ -242,7 +242,7 @@ public class A006DBWrite extends DBBase {
             //
             bufferOut.clear();
             float output = EvalTeTable.getWinLosToRate(win, los);
-            if (tableKey.getTeban() != 0) {
+            if (tableKey.getSide() != 0) {
                 output = 1.0f - output; // 反転する
             }
             bufferOut.putFloat(output);

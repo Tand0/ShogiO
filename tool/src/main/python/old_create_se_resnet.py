@@ -150,25 +150,43 @@ class TimeBasedCheckpoint(tf.keras.callbacks.Callback):
             # 基準時間を更新
             self.last_saved_time = current_time
 
+def se_block(input_tensor, ratio=16):
+    """
+    Squeeze-and-Excitation ブロック
+    今どの駒が勝敗に直結しているかを動的に重み付けします。
+    """
+    channels = input_tensor.shape[-1]
+    
+    # Squeeze: 9x9 を 1x1 に圧縮
+    x = layers.GlobalAveragePooling2D()(input_tensor)
+    x = layers.Reshape((1, 1, channels))(x)
+    
+    # Excitation: チャンネル間の関係性を学習
+    x = layers.Dense(channels // ratio, activation='swish', kernel_initializer='he_normal')(x)
+    x = layers.Dense(channels, activation='sigmoid', kernel_initializer='he_normal')(x)
+    
+    return layers.Multiply()([input_tensor, x])
 
 def residual_block(
         x: tf.keras.layers.Layer,
         filters: int,
         kernel_size: tuple[int, int]) -> tf.keras.layers.Layer:
     """基本となる残差ブロック (サイズを変更しない)"""
+    shortcut = x
     # 1つ目の畳み込み
     y = layers.Conv2D(
         # フィルタ大きさ
         filters,
-        # カーネルのサイズ。３マスづつの塊で評価する
-        kernel_size,
+        # カーネルのサイズ
+        kernel_size=kernel_size,
         # 画像の周囲に 0 （ゼロパディング）を追加し、
         # 入力画像と出力画像のサイズが同じになるように調整
         # validを使うとパディングを行わない（外枠を埋めない）ため、
         # 次のtf.keras.layersの入力サイズが小さくなります。
+        strides=1,
         padding='same',
-        use_bias=False
-    )(x)
+        use_bias=False,
+        kernel_initializer='he_normal')(x)
     #
     # BatchNormalization
     y = layers.BatchNormalization()(y)
@@ -190,27 +208,42 @@ def residual_block(
         # フィルタ大きさ
         filters,
         # カーネルのサイズ。３マスづつの塊で評価する
-        kernel_size,
-        # False: バイアス項を追加しない(対BatchNormalization対策)
+        kernel_size=kernel_size,
+        strides=1,
         padding='same',
-        use_bias=False
-    )(y)
+        # False: バイアス項を追加しない(対BatchNormalization対策)
+        use_bias=False,
+        kernel_initializer='he_normal')(y)
     #
     # BatchNormalization
     y = layers.BatchNormalization()(y)
     #
+    y = se_block(y)
+    #
+    # ショートカットの次元調整
+    if shortcut.shape[-1] != filters:
+        # フィルタ増やすだけなのでkernel_sizeもstridesも1です
+        shortcut = layers.Conv2D(
+            filters=filters,
+            kernel_size=1,
+            strides=1,
+            padding='same',
+            use_bias=False,
+            kernel_initializer='he_normal')(shortcut)
+        shortcut = layers.BatchNormalization()(shortcut)
+
     # スキップ接続（入力を足し合わせる）
-    out = layers.add([x, y])
+    out = layers.add([shortcut, y])
     #
     # 活性化関数
     out = layers.Activation('swish')(out)
+    #
     return out
 
 
 def create_custom_resnet(
         input_shape: tuple[int, int, int],
-        num_blocks: int,
-        filters: int,
+        filters_list: list,
         kernel_size: tuple[int, int],
         num_classes: int) -> models.Model:
     """(9, 9, channel_max)の入力を受け取るカスタムResNet"""
@@ -221,34 +254,24 @@ def create_custom_resnet(
     #
     # 入力層
     inputs = layers.Input(shape=input_shape, dtype=tf.float32)
-    #
-    # Output Shapeを(None,9,9,15)から(None,9,9,filters)にする
-    x = layers.Conv2D(
-        filters,
-        kernel_size=(1, 1),
-        strides=(1, 1),
-        padding='same',
-        use_bias=False
-    )(inputs)
-    #
-    # ショートカット側に Conv2D を入れた場合は、
-    # その直後に必ず BatchNormalization を配置するのが鉄則らしい
-    x = layers.BatchNormalization()(x)
+    x = inputs
     #
     # 残差ブロックを積み重ねる
-    for _ in range(num_blocks):
+    for filters in filters_list:
         x = residual_block(x, filters, kernel_size)
-    #
-    # 過学習を防ぐため適度に Dropout する
-    x = layers.Dropout(0.15)(x)
     #
     # 出力層（タスクに合わせて平坦化）
     x = layers.GlobalAveragePooling2D()(x)
-    # sigmoid で結果を 0.0～1.0 にする
+    #
+    # 過学習を防ぐため適度に Dropout する
+    x = layers.Dropout(0.3)(x)
+    #
     x = layers.Dense(
         num_classes,
-        activation='sigmoid',
+        activation=None,
         kernel_initializer='glorot_uniform')(x)
+    # sigmoid で結果を 0.0～1.0 にする
+    x = layers.Activation('sigmoid')(x)
     #
     # model の定義
     model = models.Model(inputs=inputs, outputs=x)
@@ -265,9 +288,14 @@ def main():
     channel_max = int(get_prop("app.channel.max"))
     base_dir = to_base_pass("app.db.eval")
     model_name = f"{base_dir}/model.keras"
+    model_name_savedmodel = f"{base_dir}/model_savedmodel"
     check_point = f"{base_dir}/time_checkpoints"
     android_model_name = f"{base_dir}/model.tflite"
     history_name = f"{base_dir}/history.json"
+    #
+    if not pathlib.Path(to_dataset_pass(dataset_estimate_app_name)).exists():
+        # 結果確認用のデータセットの生成
+        create_database(dataset_estimate_app_name)
     #
     if not pathlib.Path(to_dataset_pass(dataset_app_name)).exists():
         # データセットの生成
@@ -281,7 +309,7 @@ def main():
     #
     # データの個数の取得
     size = loaded_dataset.cardinality().numpy()
-    val_size = int(0.05 * size)  # 検証用の割合を設定
+    val_size = int(0.1 * size)  # 検証用の割合を設定
     if val_size == 0:
         val_size = 1
     print(f"データ件数:{size} val_size={val_size}")
@@ -292,22 +320,18 @@ def main():
     #
     # BATCH_SIZE は元が1024単位でデータを構成しているので
     # 1024の倍数は避けてシャッフル率を上げる
-    BATCH_SIZE  = 1500
+    BATCH_SIZE  = 2000
     #
-    # BUFFER_SIZE は BATCH_SIZE より
-    # 大きくとらないとシャッフルされない
-    # ※ sql での出力時に
-    # ※ ORDER BY RANDOM()でシャッフルしているから
-    # ※ これ以上いらなくない？  ということで消した
-    # BUFFER_SIZE = 100000
+    # BUFFER_SIZE は BATCH_SIZE より大きくする必要がある
+    BUFFER_SIZE = 2500
     #
     # shuffle ＆ AUTOTUNE にする
-    # val_dataset = val_dataset.shuffle(BUFFER_SIZE)
+    val_dataset = val_dataset.shuffle(BUFFER_SIZE)
     val_dataset = val_dataset.batch(BATCH_SIZE)
     val_dataset = val_dataset.prefetch(tf.data.AUTOTUNE)
     #
     # shuffle ＆ AUTOTUNE にする
-    # train_dataset = train_dataset.shuffle(BUFFER_SIZE)
+    train_dataset = train_dataset.shuffle(BUFFER_SIZE)
     train_dataset = train_dataset.batch(BATCH_SIZE)
     train_dataset = train_dataset.prefetch(tf.data.AUTOTUNE)
     #
@@ -349,15 +373,13 @@ def main():
     else:
         #
         # model の作成
+        filters_list = [32, 32, 64, 64, 128, 128]
         model_3d = create_custom_resnet(
             # 入力サイズ: [縦9, 横9, channel_max チャンネル]
             input_shape = (9, 9, channel_max),
             #
-            # ブロック数: 5がデフォルト
-            num_blocks = 34,
-            #
             # 畳み込みフィルタサイズ: 32がデフォルト
-            filters = 32,
+            filters_list = filters_list,
             #
             # 残差ブロックの kernel_size
             kernel_size = (3, 3),
@@ -375,38 +397,9 @@ def main():
     epochs = 1000
     #
     # 変化がなくなったら精度を上げる
-    learning_rate = 1e-3        # 学習率(def: 0.001)
-    weight_decay = 1e-4         # 重み減衰
-    learning_rate_last = 1e-6   # 学習率の最低値
-    #
-    # 最適化アルゴリズムの指定
-    #    Adam: Adaptive Moment Estimation
-    #    AdamW: + Weight Decay
-    #    SGD: 確率的勾配降下法
-    opt = tf.keras.optimizers.AdamW(
-        learning_rate=learning_rate, # 学習率の指定
-        weight_decay=weight_decay)   # 重み減衰
-        # clipnorm=1.0) # グラディエント・クリッピング
-    #
-    # model の訓練方法の指定
-    model_3d.compile(
-        #
-        # 最適化アルゴリズム
-        optimizer=opt,
-        #
-        # 損失関数
-        #   binary_crossentropy,
-        #   categorical_crossentropy,
-        #   accuracy: 正解率
-        #   mae: 平均絶対誤差
-        #   mse: 平均二乗誤差
-        #   losses.Huber: 外れ値の影響を受けにくい、
-        #     扱いやすい損失関数外れ値が多い場合
-        #     delta=5〜10 が最も安定する
-        loss=tf.keras.losses.Huber(delta=10.0),
-        # 評価指標: 損失関数と同じ
-        metrics=['mse', 'mae']
-    )
+    learning_rate      = 1e-4*3 # 学習率(def: 0.001)
+    weight_decay       = 1e-5   # 重み減衰
+    learning_rate_last = 1e-7   # 学習率の最低値
     #
     # 時間による自動保存 コールバックの定義
     time_checkpoint_cb = TimeBasedCheckpoint(
@@ -438,15 +431,49 @@ def main():
     # モデルが存在しない場合でかつandroid用のmodelが存在しない場合 ⇒ 学習
     if not pathlib.Path(model_name).exists() or not pathlib.Path(android_model_name).exists():
         #
-        # model の訓練
-        history = model_3d.fit(
-            train_dataset,  # 学習用データ
-            validation_data=val_dataset,  # 検証用データ
-            epochs=epochs,    # 最大繰り返し数
-            callbacks=[
-                time_checkpoint_cb, # 時間による自動保存
-                early_stopping,     # 学習しなくなったら止める
-                reduce_lr])         # 学習が進まないなときに学習率を下げる
+        # 最適化アルゴリズムの指定
+        #    Adam: Adaptive Moment Estimation
+        #    AdamW: + Weight Decay
+        #    SGD: 確率的勾配降下法
+        optAdamW = tf.keras.optimizers.AdamW(
+            learning_rate=learning_rate, # 学習率の指定
+            weight_decay=weight_decay)   # 重み減衰
+        # clipnorm=1.0) # グラディエント・クリッピング
+        optSGD = tf.keras.optimizers.SGD(
+            learning_rate=learning_rate * 0.1, # 学習率の指定
+            momentum=0.9,   # 物理的な慣性（前回の移動の勢い）
+            nesterov=True)  # 先読みブレーキ
+        #
+        #
+        # model の訓練方法の指定
+        for optimizer in [optAdamW, optSGD]:
+            model_3d.compile(
+                #
+                # 最適化アルゴリズム
+                optimizer=optimizer,
+                #
+                # 損失関数
+                #   binary_crossentropy,
+                #   categorical_crossentropy,
+                #   accuracy: 正解率
+                #   mae: 平均絶対誤差
+                #   mse: 平均二乗誤差
+                #   losses.Huber: 外れ値の影響を受けにくい、
+                #     扱いやすい損失関数外れ値が多い場合
+                #     delta=5〜10 が最も安定する
+                loss=tf.keras.losses.Huber(delta=3.0),
+                # 評価指標: 損失関数と同じ
+                metrics=['mse', 'mae']
+            )
+            history = model_3d.fit(
+                train_dataset,    # 学習用データ
+                validation_data=val_dataset,  # 検証用データ
+                epochs=epochs,    # 最大繰り返し数
+                callbacks=[
+                    time_checkpoint_cb, # 時間による自動保存
+                    early_stopping,     # 学習しなくなったら止める
+                    reduce_lr])         # 学習が進まないなときに学習率を下げる
+        #
         #
         # 実行結果の保存
         with open(history_name, 'w') as f:
@@ -456,6 +483,10 @@ def main():
         # 保存
         model_3d.save(model_name)
         print(f"model を {model_name} に保存しました。")
+        #
+        # 保存
+        model_3d.save(model_name_savedmodel)
+        print(f"model を {model_name_savedmodel} に保存しました。")
     #
     #
     # コンバーターの初期化（SavedModelやKeras model から）
@@ -506,10 +537,6 @@ def main():
     #
     # 動作確認
     #
-    if not pathlib.Path(to_dataset_pass(dataset_estimate_app_name)).exists():
-        # 結果確認用のデータセットの生成
-        create_database(dataset_estimate_app_name)
-        #
     # 推論用のデータセットのロード
     loaded_dataset = load_database(to_dataset_pass(dataset_estimate_app_name))
     #
@@ -533,7 +560,7 @@ def print_batch_data(channel_max, data_inp):
         for y in range(9):
             print("\t\t", end="")
             for x in range(9):
-                print(f" {int(data_inp[x, y, ch]):+1.0f}".replace("+", " "), end="")
+                print(f" {data_inp[x, y, ch]:+1.1f}".replace("+", " "), end="")
             print()
 
 if __name__ == "__main__":

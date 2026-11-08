@@ -5,6 +5,11 @@ import com.github.tand0.shogio.util.PropertyDefine;
 import com.github.tand0.shogio.util.TableDefine;
 import com.github.tand0.shogio.util.TableKey;
 
+import org.apache.commons.compress.archivers.sevenz.SevenZArchiveEntry;
+import org.apache.commons.compress.archivers.sevenz.SevenZFile;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -16,10 +21,11 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.stream.StreamSupport;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -73,8 +79,8 @@ public class A001DBCreate extends MyTimer {
         String folder = Paths.get(targetDb).getParent().toString();
         int rate = MyPropertiesAccess.getInt(PropertyDefine.APP_RATE_MIN);
         //
-        String targetZipsComma = MyPropertiesAccess.getString(PropertyDefine.APP_LOAD_TARGET);
-        List<String> list = Arrays.stream(targetZipsComma.split("\\s*,\\s*"))
+        Map<String, String> map = MyPropertiesAccess.getMap(PropertyDefine.APP_LOAD_TARGET);
+        List<String> list = map.values().stream()
                 .map(String::trim)
                 .filter(targetZip ->{
                     if (checkSkipString(targetZip)) {
@@ -106,13 +112,14 @@ public class A001DBCreate extends MyTimer {
                 conn.commit();
             }
         }
-        if ((new File(targetDb)).exists()) {
-            System.out.println("skipping f=" + targetDb);
+        File dbFile = new File(targetDb);
+        if (dbFile.exists()) {
+            System.out.println("skipping f=" + dbFile.getAbsolutePath());
             return;
         }
         //
         // SQLを開いていく
-        File dbFile = new File(targetDb);
+        System.out.println("creating f=" + targetDb);
         System.out.println(dbFile.getAbsoluteFile());
         String url = "jdbc:sqlite:" + dbFile.getAbsolutePath();
         try (Connection conn = DriverManager.getConnection(url)) {
@@ -124,7 +131,7 @@ public class A001DBCreate extends MyTimer {
                     this.createSQL(stmt);
                     // 統合元 DB を attach
                     stmt.execute("ATTACH DATABASE '" + targetZipDB + "' AS a");
-                    // mytable をコピー
+                    // myTable を集約
                     stmt.execute("""
                             INSERT INTO mytable (key1, key2, key3, key4, win, los)
                                 SELECT key1, key2, key3, key4, win, los FROM a.mytable
@@ -195,9 +202,27 @@ public class A001DBCreate extends MyTimer {
             return;
         }
         String extension = TableDefine.getExtension(targetZipFile);
-        if (! TableDefine.EXTENSION_ZIP.equals(extension)) {
-            throw new IOException("this is not zip file f=" + targetZipFile);
+        if ("zip".equals(extension)) {
+            runTargetZip(targetZipFile, conn, ps, rate);
+        } else if ("7z".equals(extension)) {
+            runTarget7Z(targetZipFile, conn, ps, rate);
+        } else {
+            throw new IOException("Unsupported extension ex=" + extension);
         }
+    }
+
+    /**
+     * ログフォルダにあるファイルを読み込んでDBに押し込む(フォルダ別)
+     * @param targetZipFile 対象フォルダ
+     * @param conn データベースのコネクション
+     * @param ps データベースのセッション
+     * @param rate 0:レートは考慮しない、1以上:レート以下は無視する
+     * @throws SQLException SQL Exception
+     * @throws IOException IO Exception
+     */
+    public void runTargetZip(
+            String targetZipFile, Connection conn, PreparedStatement ps, int rate)
+            throws SQLException, IOException {
         //
         File file = new File(targetZipFile);
         boolean learn = true; // 学習フラグを立てる
@@ -224,6 +249,47 @@ public class A001DBCreate extends MyTimer {
             }
         }
     }
+
+    /**
+     * ログフォルダにあるファイルを読み込んでDBに押し込む(フォルダ別)
+     * @param target7zFile 対象フォルダ
+     * @param conn データベースのコネクション
+     * @param ps データベースのセッション
+     * @param rate 0:レートは考慮しない、1以上:レート以下は無視する
+     * @throws SQLException SQL Exception
+     * @throws IOException IO Exception
+     */
+    public void runTarget7Z(
+            String target7zFile, Connection conn, PreparedStatement ps, int rate)
+            throws SQLException, IOException {
+        //
+        boolean learn = true; // 学習フラグを立てる
+        File file = new File(target7zFile);
+        try (SevenZFile sevenZFile = new SevenZFile.Builder().setFile(file)
+                .get()) {
+            long fileCount = StreamSupport.stream(sevenZFile.getEntries().spliterator(), false)
+                    .count();
+            super.setCountMax(fileCount); // カウント設定
+            //
+            SevenZArchiveEntry entry;
+            while ((entry = sevenZFile.getNextEntry()) != null) {
+                fileCountSum++; // カウントアップ
+                if (entry.isDirectory()) continue;
+
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                byte[] tmp = new byte[8192];
+                int n;
+                while ((n = sevenZFile.read(tmp)) > 0) {
+                    baos.write(tmp, 0, n);
+                }
+                try (InputStream is = new ByteArrayInputStream(baos.toByteArray())) {
+                    // 学習のメイン部分
+                    this.runFile(entry.getName(), is, learn, conn, ps, rate);
+                }
+            }
+        }
+    }
+
 
     /** add batch のカウンターの最大値 */
     private static final int addBatchCounterMax = 300000;

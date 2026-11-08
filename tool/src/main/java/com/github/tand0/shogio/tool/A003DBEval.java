@@ -46,8 +46,8 @@ public class A003DBEval extends DBBase {
      */
     public static void main(String[] arg) throws SQLException, IOException {
         // いまはスキップする
-        //A003DBEval db = new A003DBEval();
-        //db.run();
+        A003DBEval db = new A003DBEval();
+        db.run();
     }
 
     @Override

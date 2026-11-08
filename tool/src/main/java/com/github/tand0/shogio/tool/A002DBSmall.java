@@ -6,9 +6,14 @@ import com.github.tand0.shogio.util.Table;
 import com.github.tand0.shogio.util.TableDefine;
 import com.github.tand0.shogio.util.TableKey;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 /** 学習したテーブルを閾値によって２つに分離する */
 public class A002DBSmall extends DBBase {
@@ -43,23 +48,28 @@ public class A002DBSmall extends DBBase {
         db.setSaveDB(PropertyDefine.APP_DB_SMALL);
         db.run();
         //
+        // zipとして保存する
+        createZip(PropertyDefine.APP_DB_SMALL);
+        //
+        /* TODO: これ使わないよね！
         // 残りを保存する
         where = " WHERE ("  + border + " >= (win + los))";
         db.setSelectSql("SELECT key1, key2, key3, key4, win, los FROM mytable" + where);
         db.setCountSql("SELECT COUNT(*) AS total_count FROM mytable" + where);
         db.setSaveDB(PropertyDefine.APP_DB_REMAIN);
         db.run();
+        */
         //
         // 推論用に２個抽出する
         Table table = new Table(null,0);
         long[] key1 = (new TableKey(table)).getKey();
         where = String.format(" WHERE (key1=0x%x AND key2=0x%x AND key3=0x%x AND key4=0x%x) ",
                 key1[0], key1[1], key1[2], key1[3]);
-        table = new Table(table, TableDefine.changeTeStringToInt("+2726FU"));
+        table = new Table(table, Table.changeTeStringToInt("+2726FU"));
         key1 = (new TableKey(table)).getKey();
         where += String.format(" OR (key1=0x%x AND key2=0x%x AND key3=0x%x AND key4=0x%x) ",
                 key1[0], key1[1], key1[2], key1[3]);
-        table = new Table(table, TableDefine.changeTeStringToInt("-8384FU"));
+        table = new Table(table, Table.changeTeStringToInt("-8384FU"));
         key1 = (new TableKey(table)).getKey();
         where += String.format(" OR (key1=0x%x AND key2=0x%x AND key3=0x%x AND key4=0x%x) ",
                 key1[0], key1[1], key1[2], key1[3]);
@@ -69,6 +79,43 @@ public class A002DBSmall extends DBBase {
         db.run();
     }
 
+    /** zipファイルを生成する
+     *
+     * @param target プロパティ情報
+     * @throws IOException 例外
+     */
+    public static void createZip(String target) throws IOException {
+        String saveDb = MyPropertiesAccess.getString(target);
+        File sourceFile = new File(saveDb);
+        if (! sourceFile.exists()) {
+            throw new IOException("File not found! f=" + sourceFile);
+        }
+        String absolutePath = sourceFile.getAbsolutePath();
+        int dotIndex = absolutePath.lastIndexOf(".");
+        String basePath = (dotIndex == -1) ? absolutePath : absolutePath.substring(0, dotIndex);
+        File zipFile = new File(basePath + ".zip");
+        if (zipFile.exists()) {
+            System.out.println("skip zip=" + zipFile);
+            return;
+        }
+        System.out.println("create zip=" + zipFile);
+        //
+        try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(zipFile));
+             FileInputStream fis = new FileInputStream(sourceFile)) {
+
+            // ZIP内のファイル名（エントリ）を設定
+            ZipEntry zipEntry = new ZipEntry(sourceFile.getName());
+            zos.putNextEntry(zipEntry);
+
+            // データの書き込み
+            byte[] buffer = new byte[1024];
+            int length;
+            while ((length = fis.read(buffer)) >= 0) {
+                zos.write(buffer, 0, length);
+            }
+            zos.closeEntry();
+        }
+    }
     @Override
     public String[] getTargetDb() {
         return new String[]{PropertyDefine.APP_DB_ALL};

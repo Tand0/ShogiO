@@ -31,5 +31,8 @@ public class A000All {
         //
         System.out.println(A006DBWrite.class.getName());
         A006DBWrite.main(arg);
+        //
+        System.out.println(A007RunPython.class.getName());
+        A007RunPython.main(arg);
     }
 }

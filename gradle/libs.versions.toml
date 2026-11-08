@@ -1,22 +1,26 @@
 [versions]
-agp = "9.4.1"
+agp = "9.5.1"
 annotations = "26.1.0"
-fragmentKtx = "1.9.0"
+commonsCompress = "1.28.0"
+fragmentKtx = "1.9.1"
 junit = "4.13.2"
 junitVersion = "1.3.0"
 espressoCore = "3.7.0"
 appcompat = "1.8.0"
 lifecycleViewmodelKtx = "2.11.0"
-litert = "2.2.0"
-litertApi = "2.2.0"
+litert = "2.3.2"
+litertApi = "2.3.2"
 material = "1.14.0"
 activityKtx = "1.13.0"
 constraintlayout = "2.2.2"
-sqliteJdbc = "3.53.4.0"
+sqliteJdbc = "3.54.1.0"
 monitor = "1.8.0"
+tensorflowCorePlatform = "1.2.0"
+xz = "1.12"
 
 [libraries]
 annotations = { module = "org.jetbrains:annotations", version.ref = "annotations" }
+commons-compress = { module = "org.apache.commons:commons-compress", version.ref = "commonsCompress" }
 fragment-ktx = { module = "androidx.fragment:fragment-ktx", version.ref = "fragmentKtx" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
@@ -31,6 +35,8 @@ activity-ktx = { group = "androidx.activity", name = "activity-ktx", version.ref
 constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
 sqlite-jdbc = { module = "org.xerial:sqlite-jdbc", version.ref = "sqliteJdbc" }
 monitor = { group = "androidx.test", name = "monitor", version.ref = "monitor" }
+tensorflow-core-platform = { module = "org.tensorflow:tensorflow-core-platform", version.ref = "tensorflowCorePlatform" }
+xz = { module = "org.tukaani:xz", version.ref = "xz" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

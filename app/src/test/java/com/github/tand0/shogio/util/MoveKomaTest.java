@@ -31,9 +31,13 @@ public class MoveKomaTest {
 		//
 		for (XYFlag xYFlag : xYFlagList) {
 			System.out.println(
-					"ou0 x=" + xYFlag.x() + " y=" + xYFlag.y(0) + " f=" + xYFlag.flag());
+					"ou0 x=" + xYFlag.x()
+							+ " y=" + xYFlag.y(0)
+							+ " f=" + xYFlag.isLongRange());
 			System.out.println(
-					"ou1 x=" + xYFlag.x() + " y=" + xYFlag.y(1) + " f=" + xYFlag.flag());
+					"ou1 x=" + xYFlag.x()
+							+ " y=" + xYFlag.y(1)
+							+ " f=" + xYFlag.isLongRange());
 		}
 	}
 }

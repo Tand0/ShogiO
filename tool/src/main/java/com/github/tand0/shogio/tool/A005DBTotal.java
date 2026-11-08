@@ -89,7 +89,7 @@ public class A005DBTotal extends DBBase {
             long win, long los) throws SQLException {
         // 保存する
         TableKey inputKey = inputGen.createInputGenKey(tableKey);
-        if (tableKey.getTeban() == 0) {
+        if (tableKey.getSide() == 0) {
             // 先手番
             setSQL(inputKey.getKey(), win, los, ps);
         } else {

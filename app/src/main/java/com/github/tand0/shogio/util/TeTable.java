@@ -1,6 +1,5 @@
 package com.github.tand0.shogio.util;
 
-
 /**
  * 手とテーブルを合体させたもの
  */
@@ -29,8 +28,10 @@ public class TeTable {
         if (te == TableDefine.LOS) { // 次に指す手がない
             return "-------"; // 定跡エンジンだと指し手がでないのでバーにする
         }
-        return TableDefine.changeTeIntToKangiString(te);
+        return Table.changeTeIntToKangiString(te)
+            + "/" + Table.changeTeIntToString(te);
     }
+
     @Override
     public boolean equals(Object x) {
         if (x == this) return true;
@@ -42,5 +43,13 @@ public class TeTable {
             return table.equals(x);
         }
         return false;
+    }
+
+    /**ハッシュコード
+     * @return ハッシュコード
+     */
+    @Override
+    public int hashCode() {
+        return table.hashCode();
     }
 }

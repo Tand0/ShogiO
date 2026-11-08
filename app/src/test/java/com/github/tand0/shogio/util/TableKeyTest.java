@@ -277,12 +277,12 @@ public class TableKeyTest {
 	        mochiGomaNext(key);
             for (int j = 0; j < TableDefine.B_MAX; j++) {
                 for (int i = 0; i < TableDefine.B_MAX; i++) {
-	                byte koma = (byte)(0xF & only.getKoma(i, j));
-	                if ((koma == TableDefine.pK) || (koma == TableDefine.pNull)) {
+	                byte komaOnly = Table.getKomaOnly(only.getKoma(i, j));
+	                if ((komaOnly == TableDefine.pK) || (komaOnly == TableDefine.pNull)) {
 	                    continue;
 	                }
 	                only.setKoma(TableDefine.pNull, i, j);
-	                only.setTegoma(koma,  teban, only.getTegoma(koma, teban) + 1);
+	                only.setTegoma(komaOnly,  teban, only.getTegoma(komaOnly, teban) + 1);
 	                //
 	                key = new TableKey(only);
 	                mochiGomaNext(key);
@@ -463,12 +463,12 @@ public class TableKeyTest {
 		TableKey key = new TableKey(table);
 		//
 		// 先手が得られる
-		Assert.assertEquals(0, key.getTeban());
+		Assert.assertEquals(0, key.getSide());
 		//
-		int csa = TableDefine.changeTeStringToInt("+2726FU");
+		int csa = Table.changeTeStringToInt("+2726FU");
 		table = new Table(table, csa); // 1手進める
 		key = new TableKey(table);
 		// 後手が得られる
-		Assert.assertEquals(1, key.getTeban());
+		Assert.assertEquals(1, key.getSide());
 	}
 }

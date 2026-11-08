@@ -1,5 +1,7 @@
 package com.github.tand0.shogio.engin;
 
+import com.github.tand0.shogio.util.TableDefine;
+
 /** エンジンの状態を保持するためのクラス */
 public class EngineStatus {
     /** エンジン情報 */
@@ -10,7 +12,7 @@ public class EngineStatus {
 
 
     /** エンジン応答 */
-    private EngineResponse engineResponse = null;
+    private boolean engineResponse = false;
 
     /** コンストラクタ
      *
@@ -26,15 +28,15 @@ public class EngineStatus {
      *
      * @param engineResponse エンジン応答
      */
-    public void setEngineResponse(EngineResponse engineResponse) {
-        this.engineResponse = engineResponse;
+    public void setEngineResponse(boolean engineResponse) {
+         this.engineResponse = engineResponse;
     }
 
     /** エンジン応答の取得
      *
      * @return エンジン応答
      */
-    public EngineResponse getEngineResponse() {
-        return engineResponse;
+    public boolean getEngineResponse() {
+         return this.engineResponse;
     }
 }
